@@ -270,3 +270,4 @@ class AirconControlCard extends HTMLElement {
     this.shadowRoot.querySelectorAll('.mode-btn').forEach((btn) => {
       btn.addEventListener('click', (ev) => {
        
+customElements.define('aircon-control-card', AirconControlCard);
