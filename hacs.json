@@ -1,6 +1,12 @@
 {
-    "name": "Aircon Control Card",
-    "country": "AU",
-    "domains": ["climate","sensor"],
-    "iot_class": ["Local Polling"]
+  "name": "Aircon Control Card",
+  "content_in_root": true,
+  "content": [
+    "aircon-control-card.js"
+  ],
+  "domain": "aircon_control_card",
+  "version": "0.0.1",
+  "homepage": "https://github.com/tiernan1979/aircon-control",
+  "description": "Custom Lovelace card for Aircon control",
+  "type": "plugin"
 }
