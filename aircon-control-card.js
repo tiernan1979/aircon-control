@@ -40,7 +40,7 @@ class AirconControlCard extends HTMLElement {
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#cbb289',       name: 'Off' },
+      off:      { icon: 'mdi:power',         color: '#777',       name: 'Off' },
       cool:     { icon: 'mdi:snowflake',     color: '#2196F3',     name: 'Cool' },
       heat:     { icon: 'mdi:fire',          color: '#F44336',     name: 'Heat' },
       fan_only: { icon: 'mdi:fan',           color: '#9E9E9E',     name: 'Fan' },
@@ -97,6 +97,44 @@ class AirconControlCard extends HTMLElement {
         </button>`;
     });
     fanSpeedButtons += '</div>';
+
+    // Room sliders, with thumbs
+    let roomControls = '';
+    if (cfg.rooms && Array.isArray(cfg.rooms)) {
+      roomControls += '<div class="room-section">';
+      cfg.rooms.forEach(room => {
+        const sliderEnt = hass.states[room.slider_entity];
+        const sensorEnt = hass.states[room.sensor_entity];
+        let sliderVal = 0;
+        if (sliderEnt) {
+          if (sliderEnt.attributes.current_position != null) {
+            sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
+          } else if (!isNaN(Number(sliderEnt.state))) {
+            sliderVal = Number(sliderEnt.state);
+          }
+        }
+        sliderVal = Math.max(0, Math.min(100, sliderVal));
+        const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
+
+        roomControls += `
+          <div class="room-block">
+            <input
+              type="range"
+              class="styled-room-slider"
+              min="0" max="100" step="1"
+              value="${sliderVal}"
+              data-entity="${room.slider_entity}"
+              style="--percent:${sliderVal}%; --fill-color:${glowColor}"
+            />
+            <div class="slider-info">
+              <span class="slider-name">${room.name}</span>
+              <span class="slider-status">${sliderVal}%</span>
+              <span class="slider-temp">${ sensorVal !== null ? sensorVal.toFixed(1) + '°C' : 'N/A' }</span>
+            </div>
+          </div>`;
+      });
+      roomControls += '</div>';
+    }
 
     this.innerHTML = `
       <style>
@@ -312,9 +350,10 @@ class AirconControlCard extends HTMLElement {
 
       ${sensorLine}
 
+      ${roomControls}
     `;
 
-    // Event-listeners
+    // Event-listeners for the room controls, etc.
 
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -361,7 +400,6 @@ class AirconControlCard extends HTMLElement {
         temperature: nt
       });
     });
-
   }
 
   getCardSize() {
