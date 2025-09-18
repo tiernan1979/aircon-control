@@ -58,35 +58,18 @@ class AirconControlCard extends HTMLElement {
       }
       return s.state;
     };
-    const sensorSolar = cfg.solar_sensor ? getState(cfg.solar_sensor) : null;
     const sensorHouseTemp = cfg.house_temp_sensor ? getState(cfg.house_temp_sensor) : null;
     const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
-    const sensorOutsideTemp = cfg.outside_temp_sensor ? getState(cfg.outside_temp_sensor) : null;
-    const sensorOutsideHum = cfg.outside_humidity_sensor ? getState(cfg.outside_humidity_sensor) : null;
 
+    // House temp and humidity combined
     let sensorLine = '';
-    if (
-      sensorSolar !== null ||
-      sensorHouseTemp !== null ||
-      sensorHouseHum !== null ||
-      sensorOutsideTemp !== null ||
-      sensorOutsideHum !== null
-    ) {
+    if (sensorHouseTemp !== null || sensorHouseHum !== null) {
       const parts = [];
       if (sensorHouseTemp !== null) {
         parts.push(`<ha-icon icon="mdi:home-outline"></ha-icon> ${sensorHouseTemp}°C`);
       }
       if (sensorHouseHum !== null) {
         parts.push(`<ha-icon icon="mdi:water-percent"></ha-icon> ${sensorHouseHum}%`);
-      }
-      if (sensorOutsideTemp !== null) {
-        parts.push(`<ha-icon icon="mdi:weather-sunny"></ha-icon> ${sensorOutsideTemp}°C`);
-      }
-      if (sensorOutsideHum !== null) {
-        parts.push(`<ha-icon icon="mdi:water-percent"></ha-icon> ${sensorOutsideHum}%`);
-      }
-      if (sensorSolar !== null) {
-        parts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> ${sensorSolar}`);
       }
       sensorLine = `<div class="sensor-line">${parts.join(' | ')}</div>`;
     }
@@ -115,44 +98,6 @@ class AirconControlCard extends HTMLElement {
     });
     fanSpeedButtons += '</div>';
 
-    // Room sliders, remove thumb
-    let roomControls = '';
-    if (cfg.rooms && Array.isArray(cfg.rooms)) {
-      roomControls += '<div class="room-section">';
-      cfg.rooms.forEach(room => {
-        const sliderEnt = hass.states[room.slider_entity];
-        const sensorEnt = hass.states[room.sensor_entity];
-        let sliderVal = 0;
-        if (sliderEnt) {
-          if (sliderEnt.attributes.current_position != null) {
-            sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
-          } else if (!isNaN(Number(sliderEnt.state))) {
-            sliderVal = Number(sliderEnt.state);
-          }
-        }
-        sliderVal = Math.max(0, Math.min(100, sliderVal));
-        const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
-
-        roomControls += `
-          <div class="room-block">
-            <input
-              type="range"
-              class="styled-room-slider no-thumb"
-              min="0" max="100" step="1"
-              value="${sliderVal}"
-              data-entity="${room.slider_entity}"
-              style="--percent:${sliderVal}%; --fill-color:${glowColor}"
-            />
-            <div class="slider-info">
-              <span class="slider-name">${room.name}</span>
-              <span class="slider-status">${sliderVal}%</span>
-              <span class="slider-temp">${ sensorVal !== null ? sensorVal.toFixed(1) + '°C' : 'N/A' }</span>
-            </div>
-          </div>`;
-      });
-      roomControls += '</div>';
-    }
-
     this.innerHTML = `
       <style>
         @keyframes glowPulse {
@@ -180,6 +125,7 @@ class AirconControlCard extends HTMLElement {
           max-width: 360px;
           user-select: none;
         }
+
         .modes, .fan-modes {
           display: flex;
           justify-content: center;
@@ -187,6 +133,7 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 12px;
         }
+
         .mode-btn, .fan-btn {
           display: flex;
           flex-direction: column;
@@ -200,13 +147,16 @@ class AirconControlCard extends HTMLElement {
           color: #ccc;
           transition: color 0.3s;
         }
+
         .mode-btn.mode-selected, .fan-btn.fan-selected {
           color: ${glowColor};
           animation: glowPulse 10s ease-in-out infinite;
         }
+
         .mode-btn ha-icon, .fan-btn ha-icon {
           font-size: 24px;
         }
+
         .mode-name, .fan-name {
           font-size: 12px;
         }
@@ -218,6 +168,7 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 16px;
         }
+
         .setpoint-button {
           width: 32px;
           height: 32px;
@@ -231,9 +182,11 @@ class AirconControlCard extends HTMLElement {
           cursor: pointer;
           transition: background-color 0.3s;
         }
+
         .setpoint-button:hover {
           background: ${glowColor};
         }
+
         .temp-circle {
           width: 140px;
           height: 140px;
@@ -247,24 +200,12 @@ class AirconControlCard extends HTMLElement {
           animation: glowPulse 10s ease-in-out infinite;
           color: white;
         }
-        .temp-circle::after {
-          content: '';
-          position: absolute;
-          bottom: 4px;
-          left: 15%;
-          width: 70%;
-          height: 8px;
-          box-shadow:
-            0 0 8px 3px ${glowColor},
-            0 0 20px 6px ${glowColor};
-          border-radius: 50%;
-          filter: blur(8px);
-          animation: glowPulse 10s ease-in-out infinite;
-        }
+
         .temp-value {
           font-size: 32px;
           font-weight: 600;
         }
+
         .mode-in-circle {
           margin-top: 4px;
           display: flex;
@@ -284,6 +225,7 @@ class AirconControlCard extends HTMLElement {
           align-items: center;
           gap: 8px;
         }
+
         .sensor-line ha-icon {
           font-size: 14px;
           color: #888;
@@ -295,10 +237,12 @@ class AirconControlCard extends HTMLElement {
           flex-direction: column;
           gap: 10px;
         }
+
         .room-block {
           position: relative;
           width: 100%;
         }
+
         .styled-room-slider {
           width: 100%;
           height: 24px;
@@ -314,16 +258,19 @@ class AirconControlCard extends HTMLElement {
           transition: background 0.3s ease;
           margin: 0;
         }
+
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
           width: 0;
           height: 0;
         }
+
         .styled-room-slider.no-thumb::-moz-range-thumb {
           width: 0;
           height: 0;
         }
+
         .slider-info {
           position: absolute;
           top: 2px;
@@ -337,9 +284,11 @@ class AirconControlCard extends HTMLElement {
           font-size: 13px;
           color: white;
         }
+
         .slider-name {
           flex: 1;
         }
+
         .slider-status, .slider-temp {
           width: 50px;
           text-align: right;
@@ -363,7 +312,6 @@ class AirconControlCard extends HTMLElement {
 
       ${sensorLine}
 
-      ${roomControls}
     `;
 
     // Event-listeners
@@ -414,20 +362,6 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
-    this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
-      slider.addEventListener('input', (e) => {
-        const val = Number(e.target.value);
-        e.target.style.setProperty('--percent', `${val}%`);
-      });
-      slider.addEventListener('change', (e) => {
-        const val = Number(e.target.value);
-        const entityId = e.target.getAttribute('data-entity');
-        hass.callService('cover', 'set_cover_position', {
-          entity_id: entityId,
-          position: val
-        });
-      });
-    });
   }
 
   getCardSize() {
