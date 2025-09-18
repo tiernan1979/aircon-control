@@ -5,7 +5,6 @@
     "aircon-control-card.js"
   ],
   "domain": "aircon_control_card",
-  "version": "0.0.1",
   "homepage": "https://github.com/tiernan1979/aircon-control",
   "description": "Custom Lovelace card for Aircon control",
   "type": "plugin"
