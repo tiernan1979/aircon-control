@@ -1,7 +1,7 @@
 {
   "name": "Aircon Control Card",
   "render_readme": true,
-  "filename": "aircon-control-card.js"
+  "filename": "aircon-control-card.js",
   "content_in_root": true,
   "homeassistant": "2023.11.0"
 }
