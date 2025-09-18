@@ -1,7 +1,7 @@
 class AirconControlCard extends HTMLElement {
   constructor() {
     super();
-    this._localTemp = null; // store optimistic temp here
+    this._localTemp = null;
   }
 
   setConfig(config) {
@@ -13,31 +13,24 @@ class AirconControlCard extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    const entityId = this.config.entity;
-    const climate = hass.states[entityId];
+    const climate = hass.states[this.config.entity];
 
     if (!climate) {
-      this.innerHTML = `<hui-warning>${entityId} not available</hui-warning>`;
+      this.innerHTML = `<hui-warning>${this.config.entity} not available</hui-warning>`;
       return;
     }
 
-    const modes = ['cool', 'heat', 'fan_only', 'dry', 'auto'];
-    const currentMode = climate.attributes.hvac_mode || climate.attributes.operation_mode || climate.state;
-
+    // Main climate info
     const minTemp = climate.attributes.min_temp || 16;
     const maxTemp = climate.attributes.max_temp || 30;
 
-    // Get temp from HA state or use local temp if set and different
     const haTemp = climate.attributes.temperature || climate.attributes.current_temperature || minTemp;
+    const displayTemp = this._localTemp !== null ? this._localTemp : haTemp;
+    if (this._localTemp !== null && Math.abs(this._localTemp - haTemp) < 0.1) this._localTemp = null;
 
-    // If local temp exists and is different from HA, keep showing local temp
-    let displayTemp = this._localTemp !== null ? this._localTemp : haTemp;
-
-    // If HA temp matches local temp, clear local temp
-    if (this._localTemp !== null && Math.abs(this._localTemp - haTemp) < 0.1) {
-      this._localTemp = null;
-      displayTemp = haTemp;
-    }
+    // HVAC mode buttons
+    const modes = ['cool', 'heat', 'fan_only', 'dry', 'auto'];
+    const currentMode = climate.attributes.hvac_mode || climate.attributes.operation_mode || climate.state;
 
     let modeButtons = '<div class="modes">';
     modes.forEach(mode => {
@@ -46,26 +39,59 @@ class AirconControlCard extends HTMLElement {
     });
     modeButtons += '</div>';
 
+    // Helper to get sensor state safely
+    const getSensorState = id => hass.states[id]?.state ?? 'N/A';
+
+    // Get sensors values or fallback to N/A
+    const solar = this.config.solar_sensor ? getSensorState(this.config.solar_sensor) : 'N/A';
+    const houseTemp = this.config.house_temp_sensor ? getSensorState(this.config.house_temp_sensor) : 'N/A';
+    const outsideTemp = this.config.outside_temp_sensor ? getSensorState(this.config.outside_temp_sensor) : 'N/A';
+    const houseHum = this.config.house_humidity_sensor ? getSensorState(this.config.house_humidity_sensor) : 'N/A';
+    const outsideHum = this.config.outside_humidity_sensor ? getSensorState(this.config.outside_humidity_sensor) : 'N/A';
+
+    // Slider value and entity for room temp control
+    const sliderEntityId = this.config.slider_entity;
+    const sliderEntity = sliderEntityId ? hass.states[sliderEntityId] : null;
+    const sliderValue = sliderEntity ? parseFloat(sliderEntity.state) : null;
+    const sliderMin = sliderEntity?.attributes?.min ?? 16;
+    const sliderMax = sliderEntity?.attributes?.max ?? 30;
+
+    // Build HTML
     this.innerHTML = `
       <style>
+        /* Styles simplified and consistent */
+
+        :host {
+          font-family: 'Roboto', sans-serif;
+          color: white;
+          background: #263238;
+          border-radius: 15px;
+          padding: 16px;
+          display: block;
+          max-width: 320px;
+          box-sizing: border-box;
+        }
         .power {
           text-align: center;
-          margin-bottom: 20px;
+          margin-bottom: 12px;
         }
         button {
           cursor: pointer;
           border: none;
           outline: none;
           transition: background-color 0.3s ease;
+          user-select: none;
         }
         #power {
           background-color: #16a085;
           color: white;
           font-weight: bold;
-          padding: 10px 30px;
+          padding: 10px 28px;
           border-radius: 25px;
           font-size: 20px;
           box-shadow: 0 4px 6px rgba(22, 160, 133, 0.4);
+          width: 100%;
+          max-width: 200px;
         }
         #power:hover {
           background-color: #1abc9c;
@@ -74,7 +100,7 @@ class AirconControlCard extends HTMLElement {
           width: 120px;
           height: 120px;
           line-height: 120px;
-          margin: 0 auto 20px auto;
+          margin: 0 auto 16px auto;
           border-radius: 50%;
           background-color: #16a085;
           font-size: 56px;
@@ -87,7 +113,7 @@ class AirconControlCard extends HTMLElement {
         .controls {
           display: flex;
           justify-content: center;
-          margin-bottom: 20px;
+          margin-bottom: 16px;
         }
         .controls button {
           width: 60px;
@@ -100,7 +126,6 @@ class AirconControlCard extends HTMLElement {
           margin: 0 15px;
           box-shadow: 0 4px 8px rgba(0,0,0,0.2);
           transition: background-color 0.3s ease;
-          user-select: none;
         }
         .controls button:hover:not(:disabled) {
           background-color: #2ecc71;
@@ -136,6 +161,31 @@ class AirconControlCard extends HTMLElement {
           box-shadow: 0 4px 10px rgba(26, 188, 156, 0.7);
           text-decoration: underline;
         }
+        .slider-container {
+          margin: 16px auto;
+          width: 80%;
+          text-align: center;
+        }
+        .slider-container input[type="range"] {
+          width: 100%;
+          cursor: pointer;
+        }
+        .slider-label {
+          margin-top: 8px;
+          font-size: 14px;
+          color: #ddd;
+        }
+        .info-line {
+          font-size: 14px;
+          color: #ccc;
+          text-align: center;
+          margin-top: 12px;
+          user-select: none;
+        }
+        .info-line span {
+          margin: 0 8px;
+          font-weight: 600;
+        }
       </style>
 
       <div class="power">
@@ -150,13 +200,28 @@ class AirconControlCard extends HTMLElement {
         <button id="dec" ${displayTemp <= minTemp ? 'disabled' : ''}>-</button>
         <button id="inc" ${displayTemp >= maxTemp ? 'disabled' : ''}>+</button>
       </div>
+
+      ${sliderEntity ? `
+      <div class="slider-container">
+        <input type="range" min="${sliderMin}" max="${sliderMax}" step="0.5" value="${sliderValue}">
+        <div class="slider-label">Room Temp: ${sliderValue.toFixed(1)}°C</div>
+      </div>
+      ` : ''}
+
+      <div class="info-line">
+        <span>Solar: ${solar}</span>|
+        <span>Temp: ${houseTemp}°C / ${outsideTemp}°C</span>|
+        <span>Humidity: ${houseHum}% / ${outsideHum}%</span>
+      </div>
     `;
 
+    // Power toggle
     this.querySelector('#power').addEventListener('click', () => {
       const service = climate.state === 'off' ? 'turn_on' : 'turn_off';
       this._hass.callService('climate', service, { entity_id: this.config.entity });
     });
 
+    // Mode buttons
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', e => {
         const mode = e.target.getAttribute('data-mode');
@@ -167,33 +232,51 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
+    // Temperature increment/decrement
     this.querySelector('#inc').addEventListener('click', () => {
-      this._changeTemp(1, minTemp, maxTemp);
+      this._changeTemp(0.5, minTemp, maxTemp);
+    });
+    this.querySelector('#dec').addEventListener('click', () => {
+      this._changeTemp(-0.5, minTemp, maxTemp);
     });
 
-    this.querySelector('#dec').addEventListener('click', () => {
-      this._changeTemp(-1, minTemp, maxTemp);
-    });
+    // Slider control listener
+    if (sliderEntity) {
+      const slider = this.querySelector('.slider-container input[type="range"]');
+      const label = this.querySelector('.slider-label');
+
+      slider.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        label.textContent = `Room Temp: ${val.toFixed(1)}°C`;
+      });
+
+      slider.addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        this._hass.callService('input_number', 'set_value', {
+          entity_id: sliderEntityId,
+          value: val,
+        });
+      });
+    }
   }
 
-  _changeTemp(delta, minTemp, maxTemp) {
+  _changeTemp(delta, min, max) {
     const climate = this._hass.states[this.config.entity];
-    let currentTemp = climate.attributes.temperature || climate.attributes.current_temperature;
-
-    if (currentTemp == null) return;
-
+    let currentTemp = climate.attributes.temperature || climate.attributes.current_temperature || min;
     let newTemp = currentTemp + delta;
-    if (newTemp < minTemp) newTemp = minTemp;
-    if (newTemp > maxTemp) newTemp = maxTemp;
+    if (newTemp < min) newTemp = min;
+    if (newTemp > max) newTemp = max;
 
-    // Save optimistic temp for flicker fix
     this._localTemp = newTemp;
 
-    // Call HA service to set temperature
     this._hass.callService('climate', 'set_temperature', {
       entity_id: this.config.entity,
       temperature: newTemp,
     });
+  }
+
+  getCardSize() {
+    return 4;
   }
 }
 
