@@ -40,7 +40,7 @@ class AirconControlCard extends HTMLElement {
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#777',       name: 'Off' },
+      off:      { icon: 'mdi:power',         color: '#cbb289',       name: 'Off' },
       cool:     { icon: 'mdi:snowflake',     color: '#2196F3',     name: 'Cool' },
       heat:     { icon: 'mdi:fire',          color: '#F44336',     name: 'Heat' },
       fan_only: { icon: 'mdi:fan',           color: '#9E9E9E',     name: 'Fan' },
@@ -60,25 +60,35 @@ class AirconControlCard extends HTMLElement {
     };
     const sensorHouseTemp = cfg.house_temp_sensor ? getState(cfg.house_temp_sensor) : null;
     const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
-
+    const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
+    const sensorOutsideTemp = cfg.outside_temp_sensor ? getState(cfg.outside_temp_sensor) : null;
+    const sensorOutsideHum = cfg.outside_humidity_sensor ? getState(cfg.outside_humidity_sensor) : null;
+    
     // House temp and humidity combined
-    let sensorLine = '';
-    if (sensorHouseTemp !== null || sensorHouseHum !== null) {
-      const parts = [];
-      if (sensorHouseTemp !== null) {
-        parts.push(`<ha-icon icon="mdi:home-outline"></ha-icon> ${sensorHouseTemp}°C`);
-      }
-      if (sensorHouseHum !== null) {
-        parts.push(`<ha-icon icon="mdi:water-percent"></ha-icon> ${sensorHouseHum}%`);
-      }
-      sensorLine = `<div class="sensor-line">${parts.join(' | ')}</div>`;
+    // Combine house temp/humidity into one display
+    let houseTempHum = '';
+    if (sensorHouseTemp !== null && sensorHouseHum !== null) {
+      houseTempHum = `<ha-icon icon="mdi:home-outline"></ha-icon> ${sensorHouseTemp}°C / ${sensorHouseHum}%`;
+    } else if (sensorHouseTemp !== null) {
+      houseTempHum = `<ha-icon icon="mdi:home-outline"></ha-icon> ${sensorHouseTemp}°C`;
+    } else if (sensorHouseHum !== null) {
+      houseTempHum = `<ha-icon icon="mdi:water-percent"></ha-icon> ${sensorHouseHum}%`;
     }
 
+    // Sensor line parts
+    const sensorParts = [];
+    if (houseTempHum) sensorParts.push(houseTempHum);
+    if (sensorOutsideTemp !== null) sensorParts.push(`<ha-icon icon="mdi:weather-sunny"></ha-icon> ${sensorOutsideTemp}°C`);
+    if (sensorOutsideHum !== null) sensorParts.push(`<ha-icon icon="mdi:water-percent"></ha-icon> ${sensorOutsideHum}%`);
+    if (sensorSolar !== null) sensorParts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> ${sensorSolar}`);
+
+    const sensorLine = sensorParts.length ? `<div class="sensor-line">${sensorParts.join(' | ')}</div>` : '';
+    
     // Mode + Off buttons row
     let modeButtons = '<div class="modes">';
     Object.entries(modeData).forEach(([modeKey, md]) => {
       const isSel = currentMode === modeKey;
-      const color = isSel ? md.color : '#ccc';
+      const color = (modeKey === 'off' || modeKey === 'low') ? '#ccc' : (isSel ? md.color : '#ccc');
       modeButtons += `
         <button class="mode-btn ${isSel ? 'mode-selected' : ''}" data-mode="${modeKey}" style="color:${color}">
           <ha-icon icon="${md.icon}" style="color:${color}"></ha-icon>
@@ -116,6 +126,32 @@ class AirconControlCard extends HTMLElement {
         sliderVal = Math.max(0, Math.min(100, sliderVal));
         const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
 
+  // Room sliders, only show if sensor_entity given
+    let roomControls = '';
+    if (cfg.rooms && Array.isArray(cfg.rooms)) {
+      roomControls += '<div class="room-section">';
+      cfg.rooms.forEach(room => {
+        if (!room.sensor_entity) return; // skip if no sensor_entity
+
+        const sliderEnt = hass.states[room.slider_entity];
+        const sensorEnt = hass.states[room.sensor_entity];
+        let sliderVal = 0;
+        if (sliderEnt) {
+          if (sliderEnt.attributes.current_position != null) {
+            sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
+          } else if (!isNaN(Number(sliderEnt.state))) {
+            sliderVal = Number(sliderEnt.state);
+          }
+        }
+        sliderVal = Math.max(0, Math.min(100, sliderVal));
+        const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
+
+        // Determine if sensorVal is temp (basic check)
+        const isTemp = sensorVal !== null && sensorVal >= -20 && sensorVal <= 50;
+
+        // slider info placement: center if temp, else right
+        const sliderStatusStyle = isTemp ? 'slider-status center' : 'slider-status right';
+
         roomControls += `
           <div class="room-block">
             <input
@@ -124,17 +160,18 @@ class AirconControlCard extends HTMLElement {
               min="0" max="100" step="1"
               value="${sliderVal}"
               data-entity="${room.slider_entity}"
-              style="--percent:${sliderVal}%; --fill-color:${glowColor}"
+              style="--percent:${sliderVal}%; --fill-color:${glowColor};"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-status">${sliderVal}%</span>
-              <span class="slider-temp">${ sensorVal !== null ? sensorVal.toFixed(1) + '°C' : 'N/A' }</span>
+              <span class="${sliderStatusStyle}">${sliderVal}%</span>
+              <span class="slider-temp">${ isTemp ? sensorVal.toFixed(1) + '°C' : '' }</span>
             </div>
           </div>`;
       });
       roomControls += '</div>';
     }
+
 
     this.innerHTML = `
       <style>
