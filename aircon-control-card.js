@@ -1,4 +1,4 @@
-class CustomAirconControlCard extends HTMLElement {
+class AirconControlCard extends HTMLElement {
   setConfig(config) {
     if (!config.entity) {
       throw new Error('Please define an entity');
@@ -270,4 +270,4 @@ class CustomAirconControlCard extends HTMLElement {
   }
 }
 
-customElements.define('custom-aircon-control-card', CustomAirconControlCard);
+customElements.define('aircon-control-card', AirconControlCard);
