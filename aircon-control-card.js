@@ -7,7 +7,7 @@ class AirconControlCard extends HTMLElement {
   setConfig(config) {
     if (!config.entity) throw new Error('You need to define an entity');
     this.config = config;
-    this.showModeNames = config.show_mode_names ?? true; // default true, toggle with config
+    this.showModeNames = config.show_mode_names ?? true; // default true
   }
 
   set hass(hass) {
@@ -49,7 +49,6 @@ class AirconControlCard extends HTMLElement {
     // Helper to get sensor state or null if not found
     const getSensorState = (id) => id && hass.states[id] ? hass.states[id].state : null;
 
-    // Only show sensors if configured and valid
     const solar = getSensorState(config.solar_sensor);
     const houseTempSensor = getSensorState(config.house_temp_sensor);
     const outsideTempSensor = getSensorState(config.outside_temp_sensor);
@@ -117,22 +116,15 @@ class AirconControlCard extends HTMLElement {
 
     const glowColor = modeData[currentMode]?.color || '#16a085';
 
-    // Compose optional sensors info line
+    // Compose optional sensors info line (only house temp/humidity + solar for now as requested)
     let sensorLine = '';
-    if (houseTempSensor || outsideTempSensor || houseHumSensor || outsideHumSensor || solar) {
+    if (houseTempSensor !== null || houseHumSensor !== null || solar !== null) {
       sensorLine += '<div class="sensor-line">';
-      if (houseTempSensor !== null && outsideTempSensor !== null) {
-        sensorLine += `<span class="house-outside-temp">House: ${houseTempSensor}°C / Outside: ${outsideTempSensor}°C</span>`;
-      } else if (houseTempSensor !== null) {
-        sensorLine += `<span class="house-temp">House: ${houseTempSensor}°C</span>`;
-      } else if (outsideTempSensor !== null) {
-        sensorLine += `<span class="outside-temp">Outside: ${outsideTempSensor}°C</span>`;
+      if (houseTempSensor !== null) {
+        sensorLine += `<span class="house-temp">House Temp: ${houseTempSensor}°C</span>`;
       }
       if (houseHumSensor !== null) {
-        sensorLine += ` <span class="house-humidity">House Humidity: ${houseHumSensor}%</span>`;
-      }
-      if (outsideHumSensor !== null) {
-        sensorLine += ` <span class="outside-humidity">Outside Humidity: ${outsideHumSensor}%</span>`;
+        sensorLine += ` <span class="house-humidity">Humidity: ${houseHumSensor}%</span>`;
       }
       if (solar !== null) {
         sensorLine += ` <span class="solar">Solar: ${solar} W</span>`;
@@ -144,7 +136,7 @@ class AirconControlCard extends HTMLElement {
       <style>
         :host {
           font-family: 'Roboto', sans-serif;
-          background: #263238;
+          background: #000000; /* reverted black */
           color: white;
           border-radius: 12px;
           padding: 16px;
@@ -288,115 +280,84 @@ class AirconControlCard extends HTMLElement {
           white-space: nowrap;
           text-transform: capitalize;
         }
-        .mode-btn[data-mode="${currentMode}"] {
-          color: ${glowColor};
-          border-color: ${glowColor};
-          font-weight: 600;
-        }
-        .mode-btn[data-mode="${currentMode}"] ha-icon {
-          color: ${glowColor};
-        }
-        .info-line {
-          text-align: center;
-          font-size: 14px;
-          color: #ccc;
-          margin: 12px 0 6px;
-          user-select: none;
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-        .sensor-line {
-          font-size: 13px;
-          color: #bbb;
-          display: flex;
-          justify-content: center;
-          gap: 12px;
-          flex-wrap: wrap;
-          margin-bottom: 10px;
-        }
         .room-section {
-          margin-top: 20px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          margin-top: 8px;
         }
         .room-block {
-          margin-bottom: 22px;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
         }
         .slider-container {
+          width: 100%;
           position: relative;
+        }
+        input.styled-room-slider {
           width: 100%;
-        }
-        .styled-room-slider {
-          -webkit-appearance: none;
-          width: 100%;
-          height: 18px;
-          border-radius: 12px;
-          background: #444;
-          outline: none;
-          cursor: pointer;
-          --fill-color: #16a085;
-          --percent: 0%;
-        }
-        .styled-room-slider::-webkit-slider-runnable-track {
-          height: 18px;
-          border-radius: 12px;
-          background: linear-gradient(
-            to right,
-            var(--fill-color) var(--percent),
-            #444 var(--percent)
-          );
-        }
-        .styled-room-slider::-moz-range-track {
-          height: 18px;
-          border-radius: 12px;
-          background: linear-gradient(
-            to right,
-            var(--fill-color) var(--percent),
-            #444 var(--percent)
-          );
-        }
-        /* Remove thumb */
-        .styled-room-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 0;
-          height: 0;
-          margin-top: 0;
+          height: 14px;
+          border-radius: 8px;
+          background: linear-gradient(to right, ${glowColor} var(--percent), #333 var(--percent));
+          outline: none;
           cursor: pointer;
+          transition: background 0.3s ease;
+          margin: 0;
         }
-        .styled-room-slider::-moz-range-thumb {
-          width: 0;
-          height: 0;
+        input.styled-room-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 22px;
+          height: 22px;
+          background: ${glowColor};
           cursor: pointer;
+          border-radius: 50%;
+          border: none;
+          margin-top: -4px;
+          transition: background 0.3s ease;
+          box-shadow: 0 0 10px 3px ${glowColor};
+        }
+        input.styled-room-slider::-moz-range-thumb {
+          width: 22px;
+          height: 22px;
+          background: ${glowColor};
+          cursor: pointer;
+          border-radius: 50%;
+          border: none;
+          box-shadow: 0 0 10px 3px ${glowColor};
         }
         .slider-info {
-          position: absolute;
-          top: 50%;
-          left: 10px;
-          right: 10px;
-          transform: translateY(-50%);
           display: flex;
           justify-content: space-between;
-          color: white;
-          font-size: 13px;
-          font-weight: 600;
-          pointer-events: none;
-          user-select: none;
+          color: #ccc;
+          font-size: 12px;
+          margin-top: 4px;
         }
         .slider-name {
           flex: 1;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          text-transform: capitalize;
+          font-weight: 600;
         }
         .slider-status {
-          width: 40px;
+          width: 50px;
           text-align: right;
+          font-family: monospace;
         }
         .slider-temp {
           width: 50px;
           text-align: right;
+          font-family: monospace;
+        }
+        .sensor-line {
+          display: flex;
+          justify-content: center;
+          gap: 16px;
+          font-size: 12px;
+          color: #888;
+          margin-top: 12px;
+          user-select: none;
         }
       </style>
 
@@ -407,32 +368,30 @@ class AirconControlCard extends HTMLElement {
       </div>
 
       <div class="setpoint-controls">
-        <button id="setpoint-decrease">-</button>
+        <button id="decrease">−</button>
         <div class="setpoint-value">
-          <ha-icon icon="${modeData[currentMode]?.icon || 'mdi:thermometer'}"></ha-icon>
-          ${displayTemp.toFixed(1)}°C
+          <ha-icon icon="${modeData[currentMode]?.icon || 'mdi:thermometer'}"></ha-icon> ${displayTemp.toFixed(1)}°C
         </div>
-        <button id="setpoint-increase">+</button>
+        <button id="increase">+</button>
       </div>
 
       ${modeButtons}
 
-      ${sensorLine}
-
       ${roomControls}
+
+      ${sensorLine}
     `;
 
-    // Attach event listeners
-
+    // Add event listeners
     this.querySelector('#power').onclick = () => {
-      this._hass.callService('climate', 'turn_' + (powerOn ? 'off' : 'on'), { entity_id: config.entity });
+      this._hass.callService('climate', powerOn ? 'turn_off' : 'turn_on', { entity_id: config.entity });
     };
 
-    this.querySelector('#setpoint-increase').onclick = () => {
+    this.querySelector('#increase').onclick = () => {
       this.changeSetpoint(1, minTemp, maxTemp, climate, config.entity);
     };
 
-    this.querySelector('#setpoint-decrease').onclick = () => {
+    this.querySelector('#decrease').onclick = () => {
       this.changeSetpoint(-1, minTemp, maxTemp, climate, config.entity);
     };
 
