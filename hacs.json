@@ -1,11 +1,7 @@
 {
   "name": "Aircon Control Card",
+  "render_readme": true,
+  "filename": "aircon-control-card.js"
   "content_in_root": true,
-  "content": [
-    "aircon-control-card.js"
-  ],
-  "domain": "aircon_control_card",
-  "homepage": "https://github.com/tiernan1979/aircon-control",
-  "description": "Custom Lovelace card for Aircon control",
-  "type": "plugin"
+  "homeassistant": "2023.11.0"
 }
