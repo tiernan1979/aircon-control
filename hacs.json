@@ -1,14 +1,15 @@
 {
   "name": "Aircon Control Card",
   "content_in_root": true,
-  "domains": ["lovelace"],
-  "homeassistant": "2023.9.0",
-  "hacs": {
-    "type": "plugin"
-  },
+  "domain": "lovelace-aircon-control",
+  "homeassistant": "2021.1.0",
+  "iot_class": "local_push",
   "version": "0.0.1",
-  "release": "0.0.1",
-  "files": [
-    "aircon-control-card.js"
-  ]
+  "release_summary": "Custom Lovelace card to control aircon and rooms",
+  "hacs": {
+    "type": "frontend",
+    "filename": "aircon-control-card.js"
+  },
+  "dependencies": [],
+  "zip_release": false
 }
