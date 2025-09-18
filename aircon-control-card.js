@@ -16,7 +16,6 @@ class AirconControlCard extends HTMLElement {
   }
 
   getCardSize() {
-    // Rough size: base 6 + 2 rows per room
     return 6 + (this._config?.rooms?.length || 0) * 2;
   }
 
@@ -39,165 +38,159 @@ class AirconControlCard extends HTMLElement {
       return;
     }
 
-    // Climate attributes
+    // climate attributes
     const hvacMode = climate.state;
     const attrs = climate.attributes;
-    const currentTemp = attrs.current_temperature ?? '–';
-    const setTemp = attrs.temperature ?? attrs.target_temp_step ?? '–';
-    const hvacModes = attrs.hvac_modes ?? ['off', 'heat', 'cool', 'auto', 'fan_only'];
+    const currentTemp = attrs.current_temperature || '–';
+    const setTemp = attrs.temperature || attrs.target_temp_step || '–';
+    const hvacModes = attrs.hvac_modes || ['off', 'heat', 'cool', 'auto', 'fan_only'];
 
-    // Sensors from config, fallback to '–' if missing
-    const solar = this._hass.states?.[this._config.solar_sensor]?.state ?? '–';
-    const outsideTemp = this._hass.states?.[this._config.outside_temp_sensor]?.state ?? '–';
-    const outsideHumidity = this._hass.states?.[this._config.outside_humidity_sensor]?.state ?? '–';
-    const houseTemp = this._hass.states?.[this._config.house_temp_sensor]?.state ?? '–';
-    const houseHumidity = this._hass.states?.[this._config.house_humidity_sensor]?.state ?? '–';
+    // sensors from config
+    const solar = this._hass.states[this._config.solar_sensor]?.state || '–';
+    const outsideTemp = this._hass.states[this._config.outside_temp_sensor]?.state || '–';
+    const outsideHumidity = this._hass.states[this._config.outside_humidity_sensor]?.state || '–';
+    const houseTemp = this._hass.states[this._config.house_temp_sensor]?.state || '–';
+    const houseHumidity = this._hass.states[this._config.house_humidity_sensor]?.state || '–';
 
-    // Rooms array from config
-    const rooms = this._config.rooms || [];
-
-    // Style block
-    const style = `
-      <style>
-        .slider-container {
-          display: flex;
-          align-items: center;
-          margin: 10px 0;
-          font-family: 'Roboto', sans-serif;
-        }
-        label {
-          width: 110px;
-          font-weight: 600;
-          font-size: 1.1em;
-          user-select: none;
-        }
-        input[type=range] {
-          -webkit-appearance: none;
-          width: 200px;
-          height: 14px;
-          border-radius: 10px;
-          background: linear-gradient(90deg, var(--slider-color-on, #42a5f5) 0%, var(--slider-color-on, #42a5f5) var(--pos), var(--slider-color-off, #ddd) var(--pos), var(--slider-color-off, #ddd) 100%);
-          outline: none;
-          margin: 0 10px;
-          cursor: pointer;
-          transition: background 0.3s ease;
-        }
-        input[type=range]::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 26px;
-          height: 26px;
-          background: var(--slider-thumb-color, #fff);
-          border: 2px solid var(--slider-color-on, #42a5f5);
-          border-radius: 50%;
-          cursor: pointer;
-          margin-top: -6px;
-          box-shadow: 0 0 4px rgba(66,165,245,0.7);
-          transition: background 0.3s ease, border-color 0.3s ease;
-        }
-        input[type=range]::-moz-range-thumb {
-          width: 26px;
-          height: 26px;
-          background: var(--slider-thumb-color, #fff);
-          border: 2px solid var(--slider-color-on, #42a5f5);
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: 0 0 4px rgba(66,165,245,0.7);
-          transition: background 0.3s ease, border-color 0.3s ease;
-        }
-        .toggle-btn {
-          cursor: pointer;
-          border: none;
-          background: none;
-          color: var(--toggle-color, #42a5f5);
-          font-size: 26px;
-          user-select: none;
-          width: 32px;
-          height: 32px;
-          padding: 0;
-          margin-left: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: color 0.3s ease;
-        }
-        .toggle-btn.off {
-          color: #aaa;
-        }
-        .room-temp {
-          font-size: 0.9em;
-          color: var(--secondary-text-color, #666);
-          margin-left: 120px;
-          user-select: none;
-        }
-        .modes {
-          display: flex;
-          gap: 10px;
-          margin-bottom: 12px;
-          user-select: none;
-        }
-        .mode-btn {
-          padding: 6px 14px;
-          background: var(--mode-btn-bg, #eee);
-          border-radius: 8px;
-          cursor: pointer;
-          font-weight: 600;
-          border: none;
-          color: #333;
-          transition: background 0.3s ease;
-        }
-        .mode-btn.active {
-          background: var(--mode-btn-active-bg, #42a5f5);
-          color: white;
-          box-shadow: 0 2px 8px rgb(66 165 245 / 0.4);
-        }
-        .temp-controls {
-          display: flex;
-          align-items: center;
-          font-size: 1.5em;
-          margin-bottom: 12px;
-        }
-        .temp-controls button {
-          width: 36px;
-          height: 36px;
-          border-radius: 50%;
-          border: none;
-          background: var(--mode-btn-bg, #eee);
-          font-size: 1.3em;
-          cursor: pointer;
-          color: #333;
-          margin: 0 8px;
-          transition: background 0.3s ease;
-        }
-        .temp-controls button:hover {
-          background: var(--mode-btn-active-bg, #42a5f5);
-          color: white;
-        }
-        .temp-display {
-          min-width: 48px;
-          text-align: center;
-          font-weight: 700;
-        }
-        .sensor-row {
-          display: flex;
-          gap: 20px;
-          font-size: 0.9em;
-          color: var(--secondary-text-color, #666);
-          margin-bottom: 16px;
-          user-select: none;
-          flex-wrap: wrap;
-        }
-        .sensor-item {
-          background: var(--mode-btn-bg, #eee);
-          border-radius: 6px;
-          padding: 6px 12px;
-          white-space: nowrap;
-        }
-        ha-card {
-          padding: 16px;
-          font-family: 'Roboto', sans-serif;
-        }
-      </style>
+    // styles for slider like slider-button-card
+    const sliderStyle = `
+      .slider-container {
+        display: flex;
+        align-items: center;
+        margin: 10px 0;
+        font-family: 'Roboto', sans-serif;
+      }
+      label {
+        width: 110px;
+        font-weight: 600;
+        font-size: 1.1em;
+        user-select: none;
+      }
+      input[type=range] {
+        -webkit-appearance: none;
+        width: 200px;
+        height: 14px;
+        border-radius: 10px;
+        background: linear-gradient(90deg, var(--slider-color-on, #42a5f5) 0%, var(--slider-color-on, #42a5f5) var(--pos), var(--slider-color-off, #ddd) var(--pos), var(--slider-color-off, #ddd) 100%);
+        outline: none;
+        margin: 0 10px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 26px;
+        height: 26px;
+        background: var(--slider-thumb-color, #fff);
+        border: 2px solid var(--slider-color-on, #42a5f5);
+        border-radius: 50%;
+        cursor: pointer;
+        margin-top: -6px;
+        box-shadow: 0 0 4px rgba(66,165,245,0.7);
+        transition: background 0.3s ease, border-color 0.3s ease;
+      }
+      input[type=range]::-moz-range-thumb {
+        width: 26px;
+        height: 26px;
+        background: var(--slider-thumb-color, #fff);
+        border: 2px solid var(--slider-color-on, #42a5f5);
+        border-radius: 50%;
+        cursor: pointer;
+        box-shadow: 0 0 4px rgba(66,165,245,0.7);
+        transition: background 0.3s ease, border-color 0.3s ease;
+      }
+      .toggle-btn {
+        cursor: pointer;
+        border: none;
+        background: none;
+        color: var(--toggle-color, #42a5f5);
+        font-size: 26px;
+        user-select: none;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        margin-left: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.3s ease;
+      }
+      .toggle-btn.off {
+        color: #aaa;
+      }
+      .room-temp {
+        font-size: 0.9em;
+        color: var(--secondary-text-color, #666);
+        margin-left: 120px;
+        user-select: none;
+      }
+      .modes {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 12px;
+        user-select: none;
+      }
+      .mode-btn {
+        padding: 6px 14px;
+        background: var(--mode-btn-bg, #eee);
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        border: none;
+        color: #333;
+        transition: background 0.3s ease;
+      }
+      .mode-btn.active {
+        background: var(--mode-btn-active-bg, #42a5f5);
+        color: white;
+        box-shadow: 0 2px 8px rgb(66 165 245 / 0.4);
+      }
+      .temp-controls {
+        display: flex;
+        align-items: center;
+        font-size: 1.5em;
+        margin-bottom: 12px;
+      }
+      .temp-controls button {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: var(--mode-btn-bg, #eee);
+        font-size: 1.3em;
+        cursor: pointer;
+        color: #333;
+        margin: 0 8px;
+        transition: background 0.3s ease;
+      }
+      .temp-controls button:hover {
+        background: var(--mode-btn-active-bg, #42a5f5);
+        color: white;
+      }
+      .temp-display {
+        min-width: 48px;
+        text-align: center;
+        font-weight: 700;
+      }
+      .sensor-row {
+        display: flex;
+        gap: 20px;
+        font-size: 0.9em;
+        color: var(--secondary-text-color, #666);
+        margin-bottom: 16px;
+        user-select: none;
+      }
+      .sensor-item {
+        background: var(--mode-btn-bg, #eee);
+        border-radius: 6px;
+        padding: 6px 12px;
+        white-space: nowrap;
+      }
+      ha-card {
+        padding: 16px;
+        font-family: 'Roboto', sans-serif;
+      }
     `;
 
     // Build mode buttons HTML
@@ -221,53 +214,111 @@ class AirconControlCard extends HTMLElement {
       </div>
     `;
 
-    // Build rooms sliders only if climate is ON (or not off)
-    const showRooms = hvacMode !== 'off';
+    // Rooms sliders only show if HVAC is on (not 'off')
+    const showRooms = hvacMode !== 'off' && this._config.rooms && this._config.rooms.length > 0;
+
     const roomsHtml = showRooms
-      ? rooms
+      ? this._config.rooms
           .map(
             (room) => {
-              const roomState = this._hass.states[room.cover_entity];
-              const roomTemp = this._hass.states[room.temp_sensor]?.state ?? '–';
-              const roomValue = roomState?.state === 'open' ? 100 : roomState?.attributes?.current_position ?? 0;
-              const pos = roomValue + '%';
+              const roomState = this._hass.states[room.entity] || {};
+              const roomTemp = roomState.state || '–';
+              const roomSetTemp = room.set_temp_entity
+                ? this._hass.states[room.set_temp_entity]?.state || '–'
+                : '–';
 
               return `
-                <div class="slider-container" style="--pos: ${pos}">
-                  <label>${room.name}</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="5"
-                    value="${roomValue}"
-                    data-entity="${room.cover_entity}"
-                  />
-                  <span class="room-temp">${roomTemp}°</span>
-                </div>
+              <div class="slider-container">
+                <label>${room.name}</label>
+                <input
+                  type="range"
+                  min="${room.min || 16}"
+                  max="${room.max || 30}"
+                  step="${room.step || 0.5}"
+                  value="${roomSetTemp}"
+                  data-room="${room.entity}"
+                />
+                <div class="room-temp">${roomTemp}°</div>
+              </div>
               `;
             }
           )
           .join('')
       : '';
 
-    // Full card HTML
-    this.shadowRoot.innerHTML = `
-      ${style}
+    // Build the card HTML
+    const cardHtml = `
       <ha-card>
         <div class="modes">${modesHtml}</div>
+
         <div class="temp-controls">
-          <button id="temp-down">−</button>
+          <button id="temp-down">-</button>
           <div class="temp-display">${setTemp}°</div>
           <button id="temp-up">+</button>
         </div>
+
         ${sensorsHtml}
+
         ${roomsHtml}
       </ha-card>
     `;
 
-    // Attach event listeners for mode buttons
+    this.shadowRoot.innerHTML = `
+      <style>${sliderStyle}</style>
+      ${cardHtml}
+    `;
+
+    // Add event listeners for mode buttons
     this.shadowRoot.querySelectorAll('.mode-btn').forEach((btn) => {
-      btn.addEventListener('click', (ev) => {
-       
+      btn.addEventListener('click', () => {
+        const newMode = btn.getAttribute('data-mode');
+        this._hass.callService('climate', 'set_hvac_mode', {
+          entity_id: this._config.climate_entity,
+          hvac_mode: newMode,
+        });
+      });
+    });
+
+    // Temp up/down buttons
+    this.shadowRoot.getElementById('temp-up').addEventListener('click', () => {
+      this.changeTemperature(1);
+    });
+    this.shadowRoot.getElementById('temp-down').addEventListener('click', () => {
+      this.changeTemperature(-1);
+    });
+
+    // Room sliders
+    this.shadowRoot.querySelectorAll('input[type=range]').forEach((slider) => {
+      slider.addEventListener('change', (e) => {
+        const roomEntity = e.target.getAttribute('data-room');
+        const value = parseFloat(e.target.value);
+
+        this._hass.callService('climate', 'set_temperature', {
+          entity_id: roomEntity,
+          temperature: value,
+        });
+      });
+    });
+  }
+
+  changeTemperature(delta) {
+    const climate = this._hass.states[this._config.climate_entity];
+    const currentTemp = climate.attributes.temperature || climate.attributes.target_temp_step;
+    if (currentTemp === undefined) return;
+
+    let newTemp = currentTemp + delta;
+    // Clamp to min/max if available
+    const minTemp = climate.attributes.min_temp || 16;
+    const maxTemp = climate.attributes.max_temp || 30;
+    if (newTemp < minTemp) newTemp = minTemp;
+    if (newTemp > maxTemp) newTemp = maxTemp;
+
+    this._hass.callService('climate', 'set_temperature', {
+      entity_id: this._config.climate_entity,
+      temperature: newTemp,
+    });
+  }
+}
+
+// Register the custom element
 customElements.define('aircon-control-card', AirconControlCard);
