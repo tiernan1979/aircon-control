@@ -16,6 +16,18 @@ class AirconControlCard extends HTMLElement {
       return;
     }
 
+    // Define supported modes and current mode
+    const modes = ['cool', 'heat', 'fan_only', 'dry', 'auto'];
+    const currentMode = climate.attributes.hvac_mode || climate.attributes.operation_mode || climate.state;
+
+    // Build mode buttons html
+    let modeButtons = '<div class="modes" style="text-align:center; margin:15px 0;">';
+    modes.forEach(mode => {
+      const selected = currentMode === mode ? 'font-weight:bold; text-decoration: underline;' : '';
+      modeButtons += `<button class="mode-btn" data-mode="${mode}" style="margin: 0 5px; cursor:pointer; ${selected}">${mode}</button>`;
+    });
+    modeButtons += '</div>';
+
     this.innerHTML = `
       <style>
         .power {
@@ -37,6 +49,16 @@ class AirconControlCard extends HTMLElement {
           justify-content: center;
           margin-top: 10px;
         }
+        .modes button {
+          border-radius: 6px;
+          padding: 5px 10px;
+          background-color: #34495e;
+          color: white;
+          border: none;
+        }
+        .modes button:hover {
+          background-color: #2ecc71;
+        }
       </style>
 
       <div class="power">
@@ -44,15 +66,29 @@ class AirconControlCard extends HTMLElement {
       </div>
 
       <div class="temp">${climate.attributes.temperature || '--'}°C</div>
+
+      ${modeButtons}
+
       <div class="controls">
         <button id="dec">-</button>
         <button id="inc">+</button>
       </div>
     `;
 
+    // Add event listeners
     this.querySelector('#power').addEventListener('click', () => {
       const service = climate.state === 'off' ? 'turn_on' : 'turn_off';
       this._hass.callService('climate', service, { entity_id: this.config.entity });
+    });
+
+    this.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        const mode = e.target.getAttribute('data-mode');
+        this._hass.callService('climate', 'set_hvac_mode', {
+          entity_id: this.config.entity,
+          hvac_mode: mode,
+        });
+      });
     });
 
     this.querySelector('#inc').addEventListener('click', () => this._changeTemp(1));
