@@ -2,6 +2,7 @@ class AirconControlCard extends HTMLElement {
   constructor() {
     super();
     this._localTemp = null;
+    this._debounceTimers = {};
   }
 
   setConfig(config) {
@@ -21,14 +22,12 @@ class AirconControlCard extends HTMLElement {
       return;
     }
 
+    // Get min/max/current temp
     const minTemp = climate.attributes.min_temp ?? 16;
     const maxTemp = climate.attributes.max_temp ?? 30;
     const currentTemp = climate.attributes.temperature ?? climate.attributes.current_temperature ?? minTemp;
 
-    if (
-      this._localTemp !== null &&
-      Math.abs(this._localTemp - currentTemp) < 0.1
-    ) {
+    if (this._localTemp !== null && Math.abs(this._localTemp - currentTemp) < 0.1) {
       this._localTemp = null;
     }
     const displayTemp = this._localTemp !== null ? this._localTemp : currentTemp;
@@ -39,57 +38,53 @@ class AirconControlCard extends HTMLElement {
     const fanModes = climate.attributes.fan_modes ?? [];
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
+    // Mode data with colors (warm sand for off)
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#CDB79E',       name: 'Off' }, // warm sand
+      off:      { icon: 'mdi:power',         color: '#cbb289',       name: 'Off' },          // warm sand
       cool:     { icon: 'mdi:snowflake',     color: '#2196F3',       name: 'Cool' },
       heat:     { icon: 'mdi:fire',          color: '#F44336',       name: 'Heat' },
       fan_only: { icon: 'mdi:fan',           color: '#9E9E9E',       name: 'Fan' },
-      dry:      { icon: 'mdi:water-percent',  color: '#009688',      name: 'Dry' },
+      dry:      { icon: 'mdi:water-percent',  color: '#009688',       name: 'Dry' },
       auto:     { icon: 'mdi:autorenew',     color: '#FFC107',       name: 'Auto' },
     };
 
-    const glowColor = modeData[currentMode]?.color ?? '#CDB79E'; // fallback warm sand
+    // Glow color for selected mode
+    const glowColor = modeData[currentMode]?.color ?? '#16a085';
 
-    // Sensor info
-    const getState = id => {
+    // Helper to get sensor state, returns null if unknown/unavailable
+    const getState = (id) => {
       const s = hass.states[id];
-      if (!s || s.state === 'unknown' || s.state === 'unavailable') {
-        return null;
-      }
+      if (!s || s.state === 'unknown' || s.state === 'unavailable') return null;
       return s.state;
     };
+
+    // Sensors for solar, house temp/hum, outside temp/hum
     const sensorSolar = cfg.solar_sensor ? getState(cfg.solar_sensor) : null;
     const sensorHouseTemp = cfg.house_temp_sensor ? getState(cfg.house_temp_sensor) : null;
     const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
     const sensorOutsideTemp = cfg.outside_temp_sensor ? getState(cfg.outside_temp_sensor) : null;
     const sensorOutsideHum = cfg.outside_humidity_sensor ? getState(cfg.outside_humidity_sensor) : null;
 
-    let sensorLine = '';
-    if (
-      sensorSolar !== null ||
-      sensorHouseTemp !== null ||
-      sensorHouseHum !== null ||
-      sensorOutsideTemp !== null ||
-      sensorOutsideHum !== null
-    ) {
-      const parts = [];
-      if (sensorHouseTemp !== null || sensorHouseHum !== null) {
-        const temp = sensorHouseTemp !== null ? `${sensorHouseTemp}°C` : '';
-        const hum = sensorHouseHum !== null ? `${sensorHouseHum}%` : '';
-        parts.push(`<ha-icon icon="mdi:home-outline"></ha-icon> ${temp}${temp && hum ? ' / ' : ''}${hum}`);
-      }
-      if (sensorOutsideTemp !== null || sensorOutsideHum !== null) {
-        const temp = sensorOutsideTemp !== null ? `${sensorOutsideTemp}°C` : '';
-        const hum = sensorOutsideHum !== null ? `${sensorOutsideHum}%` : '';
-        parts.push(`<ha-icon icon="mdi:weather-sunny"></ha-icon> ${temp}${temp && hum ? ' / ' : ''}${hum}`);
-      }
-      if (sensorSolar !== null) {
-        parts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> ${sensorSolar}`);
-      }
-      sensorLine = `<div class="sensor-line">${parts.join(' | ')}</div>`;
+    // Combine house temp/humidity into one display
+    let houseTempHum = '';
+    if (sensorHouseTemp !== null && sensorHouseHum !== null) {
+      houseTempHum = `<ha-icon icon="mdi:home-outline"></ha-icon> ${sensorHouseTemp}°C / ${sensorHouseHum}%`;
+    } else if (sensorHouseTemp !== null) {
+      houseTempHum = `<ha-icon icon="mdi:home-outline"></ha-icon> ${sensorHouseTemp}°C`;
+    } else if (sensorHouseHum !== null) {
+      houseTempHum = `<ha-icon icon="mdi:water-percent"></ha-icon> ${sensorHouseHum}%`;
     }
 
-    // Mode + Off buttons row
+    // Sensor line parts
+    const sensorParts = [];
+    if (houseTempHum) sensorParts.push(houseTempHum);
+    if (sensorOutsideTemp !== null) sensorParts.push(`<ha-icon icon="mdi:weather-sunny"></ha-icon> ${sensorOutsideTemp}°C`);
+    if (sensorOutsideHum !== null) sensorParts.push(`<ha-icon icon="mdi:water-percent"></ha-icon> ${sensorOutsideHum}%`);
+    if (sensorSolar !== null) sensorParts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> ${sensorSolar}`);
+
+    const sensorLine = sensorParts.length ? `<div class="sensor-line">${sensorParts.join(' | ')}</div>` : '';
+
+    // Mode buttons with colors and mode names below icons
     let modeButtons = '<div class="modes">';
     Object.entries(modeData).forEach(([modeKey, md]) => {
       const isSel = currentMode === modeKey;
@@ -102,7 +97,7 @@ class AirconControlCard extends HTMLElement {
     });
     modeButtons += '</div>';
 
-    // Fan speed (always visible)
+    // Fan speed buttons, selected fan mode colored by glowColor
     let fanSpeedButtons = '<div class="fan-modes">';
     fanModes.forEach(fm => {
       const sel = (currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase()) ? 'fan-selected' : '';
@@ -113,12 +108,12 @@ class AirconControlCard extends HTMLElement {
     });
     fanSpeedButtons += '</div>';
 
-    // Room sliders, only if sensor_entity present
+    // Room sliders, only show if sensor_entity given
     let roomControls = '';
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
       roomControls += '<div class="room-section">';
       cfg.rooms.forEach(room => {
-        if (!room.sensor_entity || !hass.states[room.sensor_entity]) return;
+        if (!room.sensor_entity) return; // skip if no sensor_entity
 
         const sliderEnt = hass.states[room.slider_entity];
         const sensorEnt = hass.states[room.sensor_entity];
@@ -131,8 +126,13 @@ class AirconControlCard extends HTMLElement {
           }
         }
         sliderVal = Math.max(0, Math.min(100, sliderVal));
-
         const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
+
+        // Determine if sensorVal is temp (basic check)
+        const isTemp = sensorVal !== null && sensorVal >= -20 && sensorVal <= 50;
+
+        // slider info placement: center if temp, else right
+        const sliderStatusStyle = isTemp ? 'slider-status center' : 'slider-status right';
 
         roomControls += `
           <div class="room-block">
@@ -142,28 +142,21 @@ class AirconControlCard extends HTMLElement {
               min="0" max="100" step="1"
               value="${sliderVal}"
               data-entity="${room.slider_entity}"
-              style="--percent:${sliderVal}%; --fill-color:${glowColor}"
+              style="--percent:${sliderVal}%; --fill-color:${glowColor};"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-status" style="left: calc(var(--percent) * 1% - 20px)">${sliderVal}%</span>
-              ${ sensorVal !== null ? `<span class="slider-temp">${sensorVal.toFixed(1)}°C</span>` : `` }
+              <span class="${sliderStatusStyle}">${sliderVal}%</span>
+              <span class="slider-temp">${ isTemp ? sensorVal.toFixed(1) + '°C' : '' }</span>
             </div>
           </div>`;
       });
       roomControls += '</div>';
     }
 
+    // Set the innerHTML
     this.innerHTML = `
       <style>
-        @keyframes pulseGlow {
-          0%, 100% {
-            box-shadow: 0 0 25px 12px ${glowColor};
-          }
-          50% {
-            box-shadow: 0 0 40px 20px ${glowColor};
-          }
-        }
         :host {
           font-family: 'Roboto', sans-serif;
           background: #000;
@@ -174,6 +167,9 @@ class AirconControlCard extends HTMLElement {
           max-width: 360px;
           user-select: none;
         }
+
+        /* Modes and Fan Buttons */
+
         .modes, .fan-modes {
           display: flex;
           justify-content: center;
@@ -193,208 +189,259 @@ class AirconControlCard extends HTMLElement {
           outline: none;
           color: #ccc;
           transition: color 0.3s;
+          padding: 4px;
+          border-radius: 6px;
         }
         .mode-btn.mode-selected, .fan-btn.fan-selected {
-          color: ${glowColor};
+          color: var(--glow-color);
+        }
+        .mode-btn:hover:not(.mode-selected), .fan-btn:hover:not(.fan-selected) {
+          color: var(--glow-color);
         }
         .mode-btn ha-icon, .fan-btn ha-icon {
-          font-size: 24px;
+          font-size: 28px;
+          transition: color 0.3s;
         }
         .mode-name, .fan-name {
           font-size: 12px;
+          user-select: none;
         }
+
+        /* Color + / - buttons with warm sand and heat/cool colors */
 
         .temp-setpoint-wrapper {
           display: flex;
           justify-content: center;
           align-items: center;
-          gap: 12px;
+          gap: 20px;
           margin-bottom: 16px;
         }
         .setpoint-button {
-          width: 32px;
-          height: 32px;
+          width: 36px;
+          height: 36px;
           background: #333;
           border-radius: 50%;
-          font-size: 22px;
+          font-size: 24px;
           color: white;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: background-color 0.3s;
+          user-select: none;
         }
         .setpoint-button:hover {
-          background: ${glowColor};
+          filter: brightness(1.2);
         }
+        #dec-setpoint {
+          background-color: #F44336; /* red */
+        }
+        #dec-setpoint:hover {
+          background-color: #D32F2F;
+        }
+        #inc-setpoint {
+          background-color: #FF9800; /* orange */
+        }
+        #inc-setpoint:hover {
+          background-color: #F57C00;
+        }
+
+        /* Temperature Circle with pulsing half-glow */
+
         .temp-circle {
           width: 140px;
           height: 140px;
           background: #222;
           border-radius: 50%;
+          position: relative;
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          position: relative;
-          box-shadow:
-            0 0 20px 10px transparent;
+          box-shadow: inset 0 0 10px #000;
+          user-select: none;
         }
-        /* Glow bottom half ring with pulse */
+
+        /* The half glowing arc, pulsing */
+
         .temp-circle::before {
           content: '';
           position: absolute;
-          bottom: 0;
+          top: -12px;
           left: 50%;
-          transform: translateX(-50%);
-          width: 100px;
-          height: 50px;
-          border-radius: 50% / 100%;
-          box-shadow: 0 0 25px 12px ${glowColor};
-          animation: pulseGlow 2s infinite ease-in-out;
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          box-sizing: border-box;
+          border: 8px solid transparent;
+          border-top-color: var(--glow-color);
+          border-left-color: var(--glow-color);
+          border-right-color: transparent;
+          border-bottom-color: transparent;
+          transform: translateX(-50%) rotate(45deg);
+          filter: drop-shadow(0 0 8px var(--glow-color));
+          animation: pulseGlow 2.5s infinite ease-in-out;
           pointer-events: none;
-          z-index: -1;
+          z-index: 0;
         }
+
+        @keyframes pulseGlow {
+          0%, 100% {
+            filter: drop-shadow(0 0 10px var(--glow-color));
+          }
+          50% {
+            filter: drop-shadow(0 0 18px var(--glow-color));
+          }
+        }
+
         .temp-value {
-          font-size: 32px;
-          font-weight: 600;
+          font-size: 48px;
+          font-weight: 700;
           color: white;
+          z-index: 1;
+          user-select: none;
         }
+
         .mode-in-circle {
-          margin-top: 4px;
+          margin-top: 8px;
+          color: var(--glow-color);
+          font-weight: 600;
           display: flex;
+          flex-direction: column;
           align-items: center;
-          gap: 6px;
-          font-size: 16px;
-          color: ${glowColor};
+          z-index: 1;
+          user-select: none;
         }
+        .mode-in-circle ha-icon {
+          font-size: 30px;
+          margin-bottom: 2px;
+        }
+
+        /* Sensor line */
 
         .sensor-line {
           font-size: 12px;
-          color: #777;
-          margin-top: 12px;
-          text-align: center;
+          color: #bbb;
+          margin-bottom: 10px;
           display: flex;
           justify-content: center;
-          align-items: center;
-          gap: 8px;
+          gap: 12px;
+          flex-wrap: wrap;
+          user-select: none;
         }
         .sensor-line ha-icon {
-          font-size: 14px;
-          color: #888;
+          vertical-align: middle;
+          font-size: 16px;
+          margin-right: 4px;
+          color: #aaa;
         }
+
+        /* Room sliders */
 
         .room-section {
           margin-top: 12px;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 14px;
+          user-select: none;
         }
         .room-block {
-          position: relative;
-          width: 100%;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          color: white;
         }
-        .styled-room-slider {
-          width: 100%;
-          height: 28px;
+        input.styled-room-slider {
           -webkit-appearance: none;
-          appearance: none;
-          border-radius: 16px;
+          width: 100%;
+          height: 22px;
           background: #444;
+          border-radius: 12px;
           outline: none;
-          transition: background 0.3s ease;
-          margin: 0;
           position: relative;
           overflow: visible;
+          cursor: pointer;
         }
-        /* colored fill behind the slider track */
-        .styled-room-slider::-webkit-slider-runnable-track {
-          height: 28px;
-          border-radius: 16px;
-          background: linear-gradient(
-            to right,
-            var(--fill-color) var(--percent),
-            #444 var(--percent)
-          );
+        /* Slider fill styling */
+
+        input.styled-room-slider::-webkit-slider-runnable-track {
+          height: 22px;
+          background: linear-gradient(to right, var(--fill-color) var(--percent), #444 var(--percent));
+          border-radius: 12px;
         }
-        .styled-room-slider::-moz-range-track {
-          height: 28px;
-          border-radius: 16px;
-          background: linear-gradient(
-            to right,
-            var(--fill-color) var(--percent),
-            #444 var(--percent)
-          );
+        input.styled-room-slider::-moz-range-track {
+          height: 22px;
+          background: linear-gradient(to right, var(--fill-color) var(--percent), #444 var(--percent));
+          border-radius: 12px;
         }
 
-        /* Slider thumb */
-        .styled-room-slider::-webkit-slider-thumb {
+        input.styled-room-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 20px;
+          width: 28px;
           height: 28px;
-          border-radius: 8px;
-          background: ${glowColor};
+          background: var(--fill-color);
+          border-radius: 50%;
           cursor: pointer;
           border: none;
-          margin-top: 0px;
+          box-shadow: 0 0 8px var(--fill-color);
+          margin-top: -3px;
+          transition: background-color 0.3s;
           position: relative;
-          z-index: 10;
-          transition: background-color 0.3s ease;
+          z-index: 1;
         }
-        .styled-room-slider::-webkit-slider-thumb:hover {
-          background-color: #fff;
-        }
-        .styled-room-slider::-moz-range-thumb {
-          width: 20px;
+        input.styled-room-slider::-moz-range-thumb {
+          width: 28px;
           height: 28px;
-          border-radius: 8px;
-          background: ${glowColor};
+          background: var(--fill-color);
+          border-radius: 50%;
           cursor: pointer;
           border: none;
+          box-shadow: 0 0 8px var(--fill-color);
           position: relative;
-          z-index: 10;
-          transition: background-color 0.3s ease;
+          z-index: 1;
         }
-        .styled-room-slider::-moz-range-thumb:hover {
-          background-color: #fff;
+        input.styled-room-slider:focus::-webkit-slider-thumb {
+          box-shadow: 0 0 14px 3px var(--fill-color);
+        }
+        input.styled-room-slider:focus::-moz-range-thumb {
+          box-shadow: 0 0 14px 3px var(--fill-color);
         }
 
+        /* Slider info below slider */
+
         .slider-info {
-          position: relative;
-          height: 28px;
-          pointer-events: none;
+          display: flex;
+          justify-content: space-between;
           font-size: 13px;
+          user-select: none;
           color: white;
         }
         .slider-name {
-          position: absolute;
-          left: 8px;
-          top: 4px;
-          font-weight: 600;
+          flex: 1;
           user-select: none;
-          pointer-events: none;
         }
         .slider-status {
-          position: absolute;
-          top: 4px;
-          font-weight: 700;
-          user-select: none;
-          pointer-events: none;
-          color: black;
-          text-shadow:
-            1px 1px 1px rgba(255 255 255 / 0.7),
-            -1px -1px 1px rgba(255 255 255 / 0.7);
-          white-space: nowrap;
-          pointer-events: none;
-        }
-        .slider-temp {
-          position: absolute;
-          right: 8px;
-          top: 4px;
+          width: 40px;
+          text-align: center;
           font-weight: 600;
           user-select: none;
-          pointer-events: none;
+        }
+        .slider-status.center {
+          width: 40px;
+          margin: 0 auto;
+          text-align: center;
+        }
+        .slider-status.right {
+          text-align: right;
+        }
+        .slider-temp {
+          margin-left: 10px;
+          font-weight: 600;
+          color: #ddd;
+          user-select: none;
+          min-width: 40px;
+          text-align: right;
         }
       </style>
 
@@ -402,75 +449,86 @@ class AirconControlCard extends HTMLElement {
       ${fanSpeedButtons}
 
       <div class="temp-setpoint-wrapper">
-        <button class="setpoint-button" id="dec-setpoint">−</button>
-        <div class="temp-circle">
-         
-      <div class="temp-setpoint-wrapper">
-        <button class="setpoint-button" id="dec-setpoint">−</button>
-        <div class="temp-circle">
+        <button class="setpoint-button" id="dec-setpoint" title="Decrease Temperature">−</button>
+        <div class="temp-circle" style="--glow-color:${glowColor}">
           <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
           <div class="mode-in-circle">
             <ha-icon icon="${modeData[currentMode]?.icon || 'mdi:power'}"></ha-icon>
             <span>${modeData[currentMode]?.name || currentMode}</span>
           </div>
         </div>
-        <button class="setpoint-button" id="inc-setpoint">+</button>
+        <button class="setpoint-button" id="inc-setpoint" title="Increase Temperature">+</button>
       </div>
 
       ${sensorLine}
+
       ${roomControls}
     `;
 
-    this.style.setProperty('--glow-color', glowColor);
+    // Store reference to hass for event handlers
+    const hassRef = hass;
 
-    // Event listeners for mode buttons
+    // Event handlers for mode buttons
     this.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.onclick = () => {
         const mode = btn.getAttribute('data-mode');
         if (mode === 'off') {
-          hass.callService('climate', 'turn_off', { entity_id: cfg.entity });
+          hassRef.callService('climate', 'turn_off', { entity_id: cfg.entity });
         } else {
-          hass.callService('climate', 'set_hvac_mode', { entity_id: cfg.entity, hvac_mode: mode });
+          hassRef.callService('climate', 'set_hvac_mode', { entity_id: cfg.entity, hvac_mode: mode });
         }
-      });
+      };
     });
 
-    // Event listeners for fan buttons
+    // Fan buttons event handlers
     this.querySelectorAll('.fan-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+      btn.onclick = () => {
         const fanMode = btn.getAttribute('data-fan-mode');
-        hass.callService('climate', 'set_fan_mode', { entity_id: cfg.entity, fan_mode: fanMode });
-      });
+        hassRef.callService('climate', 'set_fan_mode', { entity_id: cfg.entity, fan_mode: fanMode });
+      };
     });
 
-    // Event listeners for setpoint increment/decrement
-    this.querySelector('#dec-setpoint').addEventListener('click', () => {
-      const newTemp = Math.max(minTemp, displayTemp - 0.5);
+    // Increment/decrement temperature buttons
+    this.querySelector('#dec-setpoint').onclick = () => {
+      let newTemp = displayTemp - 0.5;
+      if (newTemp < minTemp) newTemp = minTemp;
       this._localTemp = newTemp;
-      hass.callService('climate', 'set_temperature', { entity_id: cfg.entity, temperature: newTemp });
-    });
-    this.querySelector('#inc-setpoint').addEventListener('click', () => {
-      const newTemp = Math.min(maxTemp, displayTemp + 0.5);
+      hassRef.callService('climate', 'set_temperature', { entity_id: cfg.entity, temperature: newTemp });
+    };
+    this.querySelector('#inc-setpoint').onclick = () => {
+      let newTemp = displayTemp + 0.5;
+      if (newTemp > maxTemp) newTemp = maxTemp;
       this._localTemp = newTemp;
-      hass.callService('climate', 'set_temperature', { entity_id: cfg.entity, temperature: newTemp });
-    });
+      hassRef.callService('climate', 'set_temperature', { entity_id: cfg.entity, temperature: newTemp });
+    };
 
-    // Room sliders event handlers
+    // Room sliders input event handlers with debounce and update style
     this.querySelectorAll('.styled-room-slider').forEach(slider => {
-      let timeout = null;
-      slider.addEventListener('input', (e) => {
-        const val = e.target.value;
+      const entityId = slider.getAttribute('data-entity');
+      slider.addEventListener('input', e => {
+        const val = Number(e.target.value);
         e.target.style.setProperty('--percent', `${val}%`);
-        const statusSpan = e.target.parentElement.querySelector('.slider-status');
-        if (statusSpan) statusSpan.style.left = `calc(${val}% - 20px)`;
-        statusSpan.textContent = `${val}%`;
 
-        // Debounce service call
-        clearTimeout(timeout);
-        timeout = setTimeout(() => {
-          const entityId = e.target.getAttribute('data-entity');
-          hass.callService('cover', 'set_cover_position', { entity_id: entityId, position: Number(val) });
-        }, 500);
+        // Update slider status text inside the slider-info div
+        const parent = e.target.parentElement;
+        if (!parent) return;
+        const statusSpan = parent.querySelector('.slider-status');
+        if (statusSpan) {
+          // If center class, center the status above thumb roughly
+          if (statusSpan.classList.contains('center')) {
+            // position approx middle of slider thumb
+            statusSpan.style.marginLeft = `calc(${val}% - 20px)`;
+          } else {
+            statusSpan.style.marginLeft = '0';
+          }
+          statusSpan.textContent = `${val}%`;
+        }
+
+        // Debounce service call to avoid jitter
+        clearTimeout(this._debounceTimers[entityId]);
+        this._debounceTimers[entityId] = setTimeout(() => {
+          hassRef.callService('cover', 'set_cover_position', { entity_id: entityId, position: val });
+        }, 400);
       });
     });
   }
