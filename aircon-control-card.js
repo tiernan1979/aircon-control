@@ -53,25 +53,25 @@ class AirconControlCard extends HTMLElement {
     if (config.rooms && Array.isArray(config.rooms)) {
       roomControls += '<div class="room-section">';
       config.rooms.forEach(room => {
-        const slider = hass.states[room.slider_entity];
-        const sensor = hass.states[room.sensor_entity];
-        const sliderVal = slider ? parseFloat(slider.state) : 0;
-        const sensorVal = sensor ? sensor.state : 'N/A';
-        const min = slider?.attributes?.min ?? 16;
-        const max = slider?.attributes?.max ?? 30;
+        const sliderEnt = hass.states[room.slider_entity];
+        const sensorEnt = hass.states[room.sensor_entity];
+        const sliderVal = sliderEnt ? parseFloat(sliderEnt.state) : 0;
+        const sensorVal = sensorEnt ? parseFloat(sensorEnt.state) : null;
+        const min = sliderEnt?.attributes?.min ?? 16;
+        const max = sliderEnt?.attributes?.max ?? 30;
 
         roomControls += `
           <div class="room-block">
-            <div class="room-label">${room.name}: ${sensorVal}°C</div>
+            <div class="room-label">${room.name}: ${sensorVal != null ? sensorVal.toFixed(1) : 'N/A'}°C</div>
             <input type="range" class="room-slider" data-entity="${room.slider_entity}" min="${min}" max="${max}" step="0.5" value="${sliderVal}">
-            <div class="slider-value">Set to: ${sliderVal.toFixed(1)}°C</div>
+            <div class="slider-value">Setpoint: ${sliderVal.toFixed(1)}°C</div>
           </div>
         `;
       });
       roomControls += '</div>';
     }
 
-    // Main HTML
+    // Inject HTML
     this.innerHTML = `
       <style>
         :host {
@@ -81,7 +81,7 @@ class AirconControlCard extends HTMLElement {
           border-radius: 12px;
           padding: 16px;
           display: block;
-          max-width: 340px;
+          max-width: 360px;
         }
         button {
           cursor: pointer;
@@ -152,20 +152,45 @@ class AirconControlCard extends HTMLElement {
           margin-top: 20px;
         }
         .room-block {
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
         .room-label {
           font-size: 14px;
+          color: #ddd;
           margin-bottom: 4px;
+          text-align: center;
         }
         .room-slider {
           width: 100%;
+          height: 24px;
+          background: #444;
+          accent-color: #16a085;
+          border-radius: 12px;
+          margin: 4px 0;
+        }
+        .room-slider::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #1abc9c;
+          border: 2px solid #fff;
+          cursor: pointer;
+          margin-top: -4px;
+        }
+        .room-slider::-moz-range-thumb {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #1abc9c;
+          border: 2px solid #fff;
+          cursor: pointer;
         }
         .slider-value {
-          font-size: 13px;
-          color: #bbb;
+          font-size: 14px;
+          color: #ddd;
           text-align: center;
-          margin-top: 4px;
         }
       </style>
 
@@ -210,10 +235,10 @@ class AirconControlCard extends HTMLElement {
       const entityId = slider.dataset.entity;
       const label = slider.nextElementSibling;
       slider.addEventListener('input', (e) => {
-        label.textContent = `Set to: ${parseFloat(e.target.value).toFixed(1)}°C`;
+        label.textContent = `Setpoint: ${parseFloat(e.target.value).toFixed(1)}°C`;
       });
       slider.addEventListener('change', (e) => {
-        hass.callService('input_number', 'set_value', {
+        this._hass.callService('input_number', 'set_value', {
           entity_id: entityId,
           value: parseFloat(e.target.value),
         });
