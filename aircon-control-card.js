@@ -48,7 +48,7 @@ class AirconControlCard extends HTMLElement {
       auto:     { icon: 'mdi:autorenew',     color: '#FFC107',       name: 'Auto' },
     };
 
-    const glowColor = modeData[currentMode]?.color ?? '#16a085';
+    const glowColor = modeData[currentMode]?.color ?? '#CDB79E'; // fallback warm sand
 
     // Sensor info
     const getState = id => {
@@ -113,15 +113,15 @@ class AirconControlCard extends HTMLElement {
     });
     fanSpeedButtons += '</div>';
 
-    // Room sliders, remove thumb, adjusted spacing and size, jitter fixed, only show if sensor_entity present
+    // Room sliders, only if sensor_entity present
     let roomControls = '';
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
       roomControls += '<div class="room-section">';
       cfg.rooms.forEach(room => {
+        if (!room.sensor_entity || !hass.states[room.sensor_entity]) return;
+
         const sliderEnt = hass.states[room.slider_entity];
         const sensorEnt = hass.states[room.sensor_entity];
-        if (!sensorEnt) return; // Skip if sensor_entity not provided or unavailable
-
         let sliderVal = 0;
         if (sliderEnt) {
           if (sliderEnt.attributes.current_position != null) {
@@ -131,10 +131,8 @@ class AirconControlCard extends HTMLElement {
           }
         }
         sliderVal = Math.max(0, Math.min(100, sliderVal));
-        const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
 
-        // Position the cover % based on presence of temperature sensorVal
-        const percentPositionClass = sensorVal !== null ? 'percent-center' : 'percent-right';
+        const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
 
         roomControls += `
           <div class="room-block">
@@ -148,7 +146,7 @@ class AirconControlCard extends HTMLElement {
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-status ${percentPositionClass}">${sliderVal}%</span>
+              <span class="slider-status" style="left: calc(var(--percent) * 1% - 20px)">${sliderVal}%</span>
               ${ sensorVal !== null ? `<span class="slider-temp">${sensorVal.toFixed(1)}°C</span>` : `` }
             </div>
           </div>`;
@@ -158,6 +156,14 @@ class AirconControlCard extends HTMLElement {
 
     this.innerHTML = `
       <style>
+        @keyframes pulseGlow {
+          0%, 100% {
+            box-shadow: 0 0 25px 12px ${glowColor};
+          }
+          50% {
+            box-shadow: 0 0 40px 20px ${glowColor};
+          }
+        }
         :host {
           font-family: 'Roboto', sans-serif;
           background: #000;
@@ -232,9 +238,9 @@ class AirconControlCard extends HTMLElement {
           justify-content: center;
           position: relative;
           box-shadow:
-            0 0 20px 10px transparent; /* reset */
+            0 0 20px 10px transparent;
         }
-        /* Glow bottom half ring around the circle */
+        /* Glow bottom half ring with pulse */
         .temp-circle::before {
           content: '';
           position: absolute;
@@ -245,6 +251,7 @@ class AirconControlCard extends HTMLElement {
           height: 50px;
           border-radius: 50% / 100%;
           box-shadow: 0 0 25px 12px ${glowColor};
+          animation: pulseGlow 2s infinite ease-in-out;
           pointer-events: none;
           z-index: -1;
         }
@@ -298,7 +305,7 @@ class AirconControlCard extends HTMLElement {
           transition: background 0.3s ease;
           margin: 0;
           position: relative;
-          overflow: hidden;
+          overflow: visible;
         }
         /* colored fill behind the slider track */
         .styled-room-slider::-webkit-slider-runnable-track {
@@ -356,38 +363,39 @@ class AirconControlCard extends HTMLElement {
         .slider-info {
           position: relative;
           height: 28px;
-          display: flex;
-          justify-content: flex-start;
-          align-items: center;
           pointer-events: none;
           font-size: 13px;
           color: white;
-          gap: 12px;
-          margin-top: 4px;
         }
         .slider-name {
-          flex: 1;
-        }
-        /* Positions for percent */
-        .slider-status {
-          white-space: nowrap;
-          font-weight: 600;
-          position: relative;
-          color: white;
-          user-select: none;
-        }
-        .percent-center {
           position: absolute;
-          left: 50%;
-          transform: translateX(-50%);
+          left: 8px;
+          top: 4px;
+          font-weight: 600;
+          user-select: none;
+          pointer-events: none;
         }
-        .percent-right {
-          margin-left: auto;
+        .slider-status {
+          position: absolute;
+          top: 4px;
+          font-weight: 700;
+          user-select: none;
+          pointer-events: none;
+          color: black;
+          text-shadow:
+            1px 1px 1px rgba(255 255 255 / 0.7),
+            -1px -1px 1px rgba(255 255 255 / 0.7);
+          white-space: nowrap;
+          pointer-events: none;
         }
         .slider-temp {
-          white-space: nowrap;
+          position: absolute;
+          right: 8px;
+          top: 4px;
+          font-weight: 600;
+          user-select: none;
+          pointer-events: none;
         }
-
       </style>
 
       ${modeButtons}
@@ -396,90 +404,79 @@ class AirconControlCard extends HTMLElement {
       <div class="temp-setpoint-wrapper">
         <button class="setpoint-button" id="dec-setpoint">−</button>
         <div class="temp-circle">
+         
+      <div class="temp-setpoint-wrapper">
+        <button class="setpoint-button" id="dec-setpoint">−</button>
+        <div class="temp-circle">
           <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
           <div class="mode-in-circle">
-            <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
-            <span>${modeData[currentMode]?.name}</span>
+            <ha-icon icon="${modeData[currentMode]?.icon || 'mdi:power'}"></ha-icon>
+            <span>${modeData[currentMode]?.name || currentMode}</span>
           </div>
         </div>
         <button class="setpoint-button" id="inc-setpoint">+</button>
       </div>
 
       ${sensorLine}
-
       ${roomControls}
     `;
 
-    // Event-listeners
+    this.style.setProperty('--glow-color', glowColor);
 
+    // Event listeners for mode buttons
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const mode = btn.getAttribute('data-mode');
         if (mode === 'off') {
           hass.callService('climate', 'turn_off', { entity_id: cfg.entity });
         } else {
-          hass.callService('climate', 'set_hvac_mode', {
-            entity_id: cfg.entity,
-            hvac_mode: mode
-          });
+          hass.callService('climate', 'set_hvac_mode', { entity_id: cfg.entity, hvac_mode: mode });
         }
       });
     });
 
+    // Event listeners for fan buttons
     this.querySelectorAll('.fan-btn').forEach(btn => {
       btn.addEventListener('click', () => {
-        const fm = btn.getAttribute('data-fan-mode');
-        hass.callService('climate', 'set_fan_mode', {
-          entity_id: cfg.entity,
-          fan_mode: fm
-        });
+        const fanMode = btn.getAttribute('data-fan-mode');
+        hass.callService('climate', 'set_fan_mode', { entity_id: cfg.entity, fan_mode: fanMode });
       });
     });
 
+    // Event listeners for setpoint increment/decrement
     this.querySelector('#dec-setpoint').addEventListener('click', () => {
       const newTemp = Math.max(minTemp, displayTemp - 0.5);
       this._localTemp = newTemp;
-      hass.callService('climate', 'set_temperature', {
-        entity_id: cfg.entity,
-        temperature: newTemp
-      });
+      hass.callService('climate', 'set_temperature', { entity_id: cfg.entity, temperature: newTemp });
     });
     this.querySelector('#inc-setpoint').addEventListener('click', () => {
       const newTemp = Math.min(maxTemp, displayTemp + 0.5);
       this._localTemp = newTemp;
-      hass.callService('climate', 'set_temperature', {
-        entity_id: cfg.entity,
-        temperature: newTemp
-      });
+      hass.callService('climate', 'set_temperature', { entity_id: cfg.entity, temperature: newTemp });
     });
 
-    // Room slider event (debounced)
-    let sliderTimeout;
+    // Room sliders event handlers
     this.querySelectorAll('.styled-room-slider').forEach(slider => {
-      slider.addEventListener('input', e => {
-        const el = e.target;
-        const entityId = el.getAttribute('data-entity');
-        const val = Number(el.value);
-        el.style.setProperty('--percent', `${val}%`);
+      let timeout = null;
+      slider.addEventListener('input', (e) => {
+        const val = e.target.value;
+        e.target.style.setProperty('--percent', `${val}%`);
+        const statusSpan = e.target.parentElement.querySelector('.slider-status');
+        if (statusSpan) statusSpan.style.left = `calc(${val}% - 20px)`;
+        statusSpan.textContent = `${val}%`;
 
-        // Update slider percent text
-        const statusSpan = el.nextElementSibling.querySelector('.slider-status');
-        if (statusSpan) statusSpan.textContent = `${val}%`;
-
-        if (sliderTimeout) clearTimeout(sliderTimeout);
-        sliderTimeout = setTimeout(() => {
-          this._localTemp = null;
-          hass.callService('cover', 'set_cover_position', {
-            entity_id: entityId,
-            position: val
-          });
-        }, 300);
+        // Debounce service call
+        clearTimeout(timeout);
+        timeout = setTimeout(() => {
+          const entityId = e.target.getAttribute('data-entity');
+          hass.callService('cover', 'set_cover_position', { entity_id: entityId, position: Number(val) });
+        }, 500);
       });
     });
   }
 
   getCardSize() {
-    return 4;
+    return 3;
   }
 }
 
