@@ -232,33 +232,28 @@ class AirconControlCard extends HTMLElement {
           justify-content: center;
           position: relative;
           z-index: 1;
+          box-shadow: none;
+          transition: box-shadow 1.5s ease-in-out;
         }
 
-        .temp-circle::before {
-          content: "";
-          position: absolute;
-          bottom: -10px;
-          left: -10px;
-          width: 160px;
-          height: 80px;
-          border-radius: 80px 80px 0 0;
-          background: ${glowColor};
-          filter: blur(20px);
-          opacity: 0.4;
-          z-index: -1;
-        }
-
-        .temp-circle.glow::before {
+        /* Glow around circle - behind it */
+        .temp-circle.glow {
+          box-shadow:
+            0 0 10px 3px ${glowColor}aa,
+            0 0 15px 7px ${glowColor}99;
           animation: glowPulse 5s infinite ease-in-out;
-          opacity: 0.8;
         }
 
         @keyframes glowPulse {
           0%, 100% {
-            opacity: 0.4;
+            box-shadow:
+              0 0 5px 1.5px ${glowColor}66,
+              0 0 10px 5px ${glowColor}44;
           }
           50% {
-            opacity: 1;
+            box-shadow:
+              0 0 15px 5px ${glowColor}dd,
+              0 0 25px 10px ${glowColor}bb;
           }
         }
 
@@ -266,6 +261,7 @@ class AirconControlCard extends HTMLElement {
           font-size: 32px;
           font-weight: 600;
           color: white;
+          user-select: none;
         }
 
         .mode-in-circle {
@@ -275,6 +271,7 @@ class AirconControlCard extends HTMLElement {
           gap: 6px;
           font-size: 16px;
           color: ${glowColor};
+          user-select: none;
         }
 
         .sensor-line {
@@ -319,6 +316,7 @@ class AirconControlCard extends HTMLElement {
           outline: none;
           transition: background 0.3s ease;
           margin: 0;
+          font-size: 14px; /* Bigger font size for slider text */
         }
 
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
@@ -343,8 +341,9 @@ class AirconControlCard extends HTMLElement {
           justify-content: space-between;
           align-items: center;
           pointer-events: none;
-          font-size: 13px;
+          font-size: 14px; /* Bigger font size for slider info */
           color: white;
+          user-select: none;
         }
 
         .slider-name {
@@ -377,7 +376,6 @@ class AirconControlCard extends HTMLElement {
       ${roomControls}
     `;
 
-    // (event listeners unchanged)
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const mode = btn.getAttribute('data-mode');
