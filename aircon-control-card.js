@@ -127,6 +127,39 @@ class AirconControlCard extends HTMLElement {
           vertical-align: middle;
         }
 
+        .top-status-bar {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          margin-bottom: 12px;
+          flex-wrap: wrap;
+        }
+
+        .top-status-bar button {
+          background: #333;
+          border: none;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          color: white;
+          font-size: 18px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: background-color 0.3s ease;
+        }
+
+        .top-status-bar button.selected {
+          background: var(--selected-color, #1e90ff);
+          box-shadow: 0 0 8px var(--selected-color, #1e90ff);
+        }
+
+        .top-status-bar ha-icon {
+          font-size: 20px;
+          pointer-events: none;
+        }
+
         .controls {
           display: flex;
           justify-content: space-between;
@@ -186,36 +219,11 @@ class AirconControlCard extends HTMLElement {
           color: ${modeData.color};
         }
 
-        .mode-selector {
-          text-align: center;
-          margin: 12px 0;
-          display: flex;
-          justify-content: center;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .mode-btn {
-          padding: 6px 10px;
-          border-radius: 16px;
-          background: #333;
-          color: white;
-          font-size: 13px;
-          cursor: pointer;
-          border: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        .mode-btn.selected {
-          background: ${modeData.color};
-        }
-
         .sensor-line {
           font-size: 13px;
           color: #ccc;
           margin-top: 10px;
+          margin-bottom: 8px;
           text-align: center;
           display: flex;
           justify-content: center;
@@ -224,7 +232,7 @@ class AirconControlCard extends HTMLElement {
         }
 
         .room-section {
-          margin-top: 16px;
+          margin-top: 0;
         }
 
         .slider-container {
@@ -265,6 +273,21 @@ class AirconControlCard extends HTMLElement {
         .slider-temp { width: 60px; text-align: right; }
       </style>
 
+      <!-- Top HVAC Mode Status Icons -->
+      <div class="top-status-bar">
+        ${Object.entries(modeMap).map(([key, m]) => `
+          <button
+            class="${hvacMode === key ? 'selected' : ''}"
+            data-mode="${key}"
+            style="--selected-color: ${m.color}"
+            title="${m.label}"
+            aria-label="${m.label}"
+          >
+            <ha-icon icon="${m.icon}"></ha-icon>
+          </button>
+        `).join('')}
+      </div>
+
       <div class="controls">
         <button id="dec" class="circle-button">−</button>
         <div class="temp-circle">
@@ -277,20 +300,13 @@ class AirconControlCard extends HTMLElement {
         <button id="inc" class="circle-button">+</button>
       </div>
 
-      <div class="mode-selector">
-        ${Object.entries(modeMap).map(([key, m]) => `
-          <button class="mode-btn ${hvacMode === key ? 'selected' : ''}" data-mode="${key}">
-            <ha-icon icon="${m.icon}"></ha-icon>${m.label}
-          </button>
-        `).join('')}
-      </div>
-
       ${sensorLine}
+
       ${roomControls}
     `;
 
-    // Event listeners
-    this.querySelectorAll('.mode-btn').forEach(btn => {
+    // Event listeners for top mode buttons
+    this.querySelectorAll('.top-status-bar button').forEach(btn => {
       btn.addEventListener('click', e => {
         const mode = e.currentTarget.getAttribute('data-mode');
         this._hass.callService('climate', 'set_hvac_mode', {
@@ -300,6 +316,7 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
+    // Increment / Decrement temperature buttons
     this.querySelector('#inc').addEventListener('click', () => {
       this._changeTemp(1, minTemp, maxTemp);
     });
@@ -307,6 +324,7 @@ class AirconControlCard extends HTMLElement {
       this._changeTemp(-1, minTemp, maxTemp);
     });
 
+    // Room slider input & change listeners
     this.querySelectorAll('.styled-room-slider').forEach(slider => {
       const entityId = slider.dataset.entity;
       const statusSpan = slider.parentElement.querySelector('.slider-status');
