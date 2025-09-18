@@ -1,0 +1,14 @@
+{
+  "name": "Aircon Control Card",
+  "content_in_root": true,
+  "domains": ["lovelace"],
+  "homeassistant": "2023.9.0",
+  "hacs": {
+    "type": "plugin"
+  },
+  "version": "1.0.0",
+  "release": "1.0.0",
+  "files": [
+    "aircon-control-card.js"
+  ]
+}
