@@ -16,15 +16,13 @@ class AirconControlCard extends HTMLElement {
       return;
     }
 
-    // Define supported modes and current mode
     const modes = ['cool', 'heat', 'fan_only', 'dry', 'auto'];
     const currentMode = climate.attributes.hvac_mode || climate.attributes.operation_mode || climate.state;
 
-    // Build mode buttons html
-    let modeButtons = '<div class="modes" style="text-align:center; margin:15px 0;">';
+    let modeButtons = '<div class="modes">';
     modes.forEach(mode => {
-      const selected = currentMode === mode ? 'font-weight:bold; text-decoration: underline;' : '';
-      modeButtons += `<button class="mode-btn" data-mode="${mode}" style="margin: 0 5px; cursor:pointer; ${selected}">${mode}</button>`;
+      const selected = currentMode === mode ? 'mode-selected' : '';
+      modeButtons += `<button class="mode-btn ${selected}" data-mode="${mode}">${mode}</button>`;
     });
     modeButtons += '</div>';
 
@@ -32,32 +30,91 @@ class AirconControlCard extends HTMLElement {
       <style>
         .power {
           text-align: center;
-          margin-bottom: 15px;
+          margin-bottom: 20px;
         }
         button {
-          font-size: 24px;
-          margin: 0 10px;
           cursor: pointer;
+          border: none;
+          outline: none;
+          transition: background-color 0.3s ease;
         }
+        /* Power button */
+        #power {
+          background-color: #16a085;
+          color: white;
+          font-weight: bold;
+          padding: 10px 30px;
+          border-radius: 25px;
+          font-size: 20px;
+          box-shadow: 0 4px 6px rgba(22, 160, 133, 0.4);
+        }
+        #power:hover {
+          background-color: #1abc9c;
+        }
+
+        /* Temperature circle */
         .temp {
-          font-size: 48px;
+          width: 120px;
+          height: 120px;
+          line-height: 120px;
+          margin: 0 auto 20px auto;
+          border-radius: 50%;
+          background-color: #16a085;
+          font-size: 56px;
           font-weight: bold;
           text-align: center;
+          color: white;
+          box-shadow: 0 0 15px #16a085;
+          user-select: none;
         }
+
+        /* Controls +/- buttons */
         .controls {
           display: flex;
           justify-content: center;
-          margin-top: 10px;
+          margin-bottom: 20px;
         }
-        .modes button {
-          border-radius: 6px;
-          padding: 5px 10px;
+        .controls button {
+          width: 60px;
+          height: 60px;
+          font-size: 36px;
+          font-weight: bold;
+          border-radius: 50%;
           background-color: #34495e;
           color: white;
-          border: none;
+          margin: 0 15px;
+          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .controls button:hover {
+          background-color: #2ecc71;
+          box-shadow: 0 6px 12px rgba(46, 204, 113, 0.6);
+        }
+
+        /* Mode buttons */
+        .modes {
+          text-align: center;
+          margin-bottom: 20px;
+        }
+        .modes button {
+          margin: 0 8px;
+          padding: 8px 18px;
+          border-radius: 20px;
+          background-color: #34495e;
+          color: white;
+          font-weight: 600;
+          font-size: 16px;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+          user-select: none;
+          transition: background-color 0.3s ease;
         }
         .modes button:hover {
           background-color: #2ecc71;
+        }
+        .mode-selected {
+          background-color: #1abc9c !important;
+          font-weight: 700;
+          box-shadow: 0 4px 10px rgba(26, 188, 156, 0.7);
+          text-decoration: underline;
         }
       </style>
 
@@ -75,7 +132,6 @@ class AirconControlCard extends HTMLElement {
       </div>
     `;
 
-    // Add event listeners
     this.querySelector('#power').addEventListener('click', () => {
       const service = climate.state === 'off' ? 'turn_on' : 'turn_off';
       this._hass.callService('climate', service, { entity_id: this.config.entity });
