@@ -40,7 +40,7 @@ class AirconControlCard extends HTMLElement {
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#777',       name: 'Off' },
+      off:      { icon: 'mdi:power',         color: '#CDB79E',       name: 'Off' },
       cool:     { icon: 'mdi:snowflake',     color: '#2196F3',     name: 'Cool' },
       heat:     { icon: 'mdi:fire',          color: '#F44336',     name: 'Heat' },
       fan_only: { icon: 'mdi:fan',           color: '#9E9E9E',     name: 'Fan' },
@@ -50,7 +50,6 @@ class AirconControlCard extends HTMLElement {
 
     const glowColor = modeData[currentMode]?.color ?? '#16a085';
 
-    // Sensor info
     const getState = id => {
       const s = hass.states[id];
       if (!s || s.state === 'unknown' || s.state === 'unavailable') {
@@ -58,6 +57,7 @@ class AirconControlCard extends HTMLElement {
       }
       return s.state;
     };
+
     const sensorSolar = cfg.solar_sensor ? getState(cfg.solar_sensor) : null;
     const sensorHouseTemp = cfg.house_temp_sensor ? getState(cfg.house_temp_sensor) : null;
     const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
@@ -89,7 +89,6 @@ class AirconControlCard extends HTMLElement {
       sensorLine = `<div class="sensor-line">${parts.join(' | ')}</div>`;
     }
 
-    // Mode + Off buttons row
     let modeButtons = '<div class="modes">';
     Object.entries(modeData).forEach(([modeKey, md]) => {
       const isSel = currentMode === modeKey;
@@ -102,7 +101,6 @@ class AirconControlCard extends HTMLElement {
     });
     modeButtons += '</div>';
 
-    // Fan speed (always visible)
     let fanSpeedButtons = '<div class="fan-modes">';
     fanModes.forEach(fm => {
       const sel = (currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase()) ? 'fan-selected' : '';
@@ -113,7 +111,6 @@ class AirconControlCard extends HTMLElement {
     });
     fanSpeedButtons += '</div>';
 
-    // Room sliders, remove thumb
     let roomControls = '';
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
       roomControls += '<div class="room-section">';
@@ -216,6 +213,7 @@ class AirconControlCard extends HTMLElement {
         .setpoint-button:hover {
           background: ${glowColor};
         }
+
         .temp-circle {
           width: 140px;
           height: 140px;
@@ -226,20 +224,45 @@ class AirconControlCard extends HTMLElement {
           align-items: center;
           justify-content: center;
           position: relative;
+          z-index: 1;
         }
-        .temp-circle::after {
-          background: #111214;
-          border-radius: 50%;
-          width: 130px;
-          height: 130px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          color: white;
-          box-shadow: 0 10px 25px -5px ${glowColor};
-          filter: blur(8px);
+
+        .temp-circle.glow::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          width: 160px;
+          height: 80px;
+          border-radius: 50% / 100% 100% 0 0;
+          background: ${glowColor};
+          filter: blur(25px);
+          opacity: 0.6;
+          animation: glowPulse 5s infinite ease-in-out;
+          z-index: -1;
         }
+
+        .temp-circle:not(.glow)::after {
+          content: "";
+          position: absolute;
+          bottom: 0;
+          width: 160px;
+          height: 80px;
+          border-radius: 50% / 100% 100% 0 0;
+          background: ${glowColor};
+          filter: blur(25px);
+          opacity: 0.3;
+          z-index: -1;
+        }
+
+        @keyframes glowPulse {
+          0%, 100% {
+            opacity: 0.3;
+          }
+          50% {
+            opacity: 1;
+          }
+        }
+
         .temp-value {
           font-size: 32px;
           font-weight: 600;
@@ -331,7 +354,7 @@ class AirconControlCard extends HTMLElement {
 
       <div class="temp-setpoint-wrapper">
         <button class="setpoint-button" id="dec-setpoint">−</button>
-        <div class="temp-circle">
+        <div class="temp-circle ${powerOn ? 'glow' : ''}">
           <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
           <div class="mode-in-circle">
             <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
@@ -346,7 +369,8 @@ class AirconControlCard extends HTMLElement {
       ${roomControls}
     `;
 
-    // Event-listeners
+    // Event listeners unchanged...
+    // [snip – no changes needed for the JS logic below]
 
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -408,7 +432,6 @@ class AirconControlCard extends HTMLElement {
         });
       });
     });
-
   }
 
   getCardSize() {
