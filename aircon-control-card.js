@@ -40,7 +40,7 @@ class AirconControlCard extends HTMLElement {
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#777',       name: 'Off' },
+      off:      { icon: 'mdi:power',         color: '#cbb289',       name: 'Off' },
       cool:     { icon: 'mdi:snowflake',     color: '#2196F3',     name: 'Cool' },
       heat:     { icon: 'mdi:fire',          color: '#F44336',     name: 'Heat' },
       fan_only: { icon: 'mdi:fan',           color: '#9E9E9E',     name: 'Fan' },
