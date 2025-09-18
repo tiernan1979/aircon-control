@@ -19,6 +19,11 @@ class AirconControlCard extends HTMLElement {
     const modes = ['cool', 'heat', 'fan_only', 'dry', 'auto'];
     const currentMode = climate.attributes.hvac_mode || climate.attributes.operation_mode || climate.state;
 
+    // Get min/max temps if available
+    const minTemp = climate.attributes.min_temp || 16; // fallback
+    const maxTemp = climate.attributes.max_temp || 30; // fallback
+    const currentTemp = climate.attributes.temperature || climate.attributes.current_temperature || minTemp;
+
     let modeButtons = '<div class="modes">';
     modes.forEach(mode => {
       const selected = currentMode === mode ? 'mode-selected' : '';
@@ -84,10 +89,17 @@ class AirconControlCard extends HTMLElement {
           color: white;
           margin: 0 15px;
           box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+          transition: background-color 0.3s ease;
+          user-select: none;
         }
-        .controls button:hover {
+        .controls button:hover:not(:disabled) {
           background-color: #2ecc71;
           box-shadow: 0 6px 12px rgba(46, 204, 113, 0.6);
+        }
+        .controls button:disabled {
+          background-color: #7f8c8d;
+          cursor: not-allowed;
+          box-shadow: none;
         }
 
         /* Mode buttons */
@@ -122,13 +134,13 @@ class AirconControlCard extends HTMLElement {
         <button id="power">${climate.state === 'off' ? 'Turn On' : 'Turn Off'}</button>
       </div>
 
-      <div class="temp">${climate.attributes.temperature || '--'}°C</div>
+      <div class="temp">${currentTemp}°C</div>
 
       ${modeButtons}
 
       <div class="controls">
-        <button id="dec">-</button>
-        <button id="inc">+</button>
+        <button id="dec" ${currentTemp <= minTemp ? 'disabled' : ''}>-</button>
+        <button id="inc" ${currentTemp >= maxTemp ? 'disabled' : ''}>+</button>
       </div>
     `;
 
@@ -147,17 +159,19 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
-    this.querySelector('#inc').addEventListener('click', () => this._changeTemp(1));
-    this.querySelector('#dec').addEventListener('click', () => this._changeTemp(-1));
+    this.querySelector('#inc').addEventListener('click', () => this._changeTemp(1, minTemp, maxTemp));
+    this.querySelector('#dec').addEventListener('click', () => this._changeTemp(-1, minTemp, maxTemp));
   }
 
-  _changeTemp(delta) {
+  _changeTemp(delta, minTemp, maxTemp) {
     const climate = this._hass.states[this.config.entity];
-    const currentTemp = climate.attributes.temperature || climate.attributes.current_temperature;
+    let currentTemp = climate.attributes.temperature || climate.attributes.current_temperature;
 
     if (currentTemp == null) return;
 
-    const newTemp = currentTemp + delta;
+    let newTemp = currentTemp + delta;
+    if (newTemp < minTemp) newTemp = minTemp;
+    if (newTemp > maxTemp) newTemp = maxTemp;
 
     this._hass.callService('climate', 'set_temperature', {
       entity_id: this.config.entity,
