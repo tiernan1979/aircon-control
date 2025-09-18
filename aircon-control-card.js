@@ -1,4 +1,9 @@
 class AirconControlCard extends HTMLElement {
+  constructor() {
+    super();
+    this._localTemp = null; // store optimistic temp here
+  }
+
   setConfig(config) {
     if (!config.entity) {
       throw new Error('You need to define an entity');
@@ -19,10 +24,20 @@ class AirconControlCard extends HTMLElement {
     const modes = ['cool', 'heat', 'fan_only', 'dry', 'auto'];
     const currentMode = climate.attributes.hvac_mode || climate.attributes.operation_mode || climate.state;
 
-    // Get min/max temps if available, fallback to sensible defaults
     const minTemp = climate.attributes.min_temp || 16;
     const maxTemp = climate.attributes.max_temp || 30;
-    const currentTemp = climate.attributes.temperature || climate.attributes.current_temperature || minTemp;
+
+    // Get temp from HA state or use local temp if set and different
+    const haTemp = climate.attributes.temperature || climate.attributes.current_temperature || minTemp;
+
+    // If local temp exists and is different from HA, keep showing local temp
+    let displayTemp = this._localTemp !== null ? this._localTemp : haTemp;
+
+    // If HA temp matches local temp, clear local temp
+    if (this._localTemp !== null && Math.abs(this._localTemp - haTemp) < 0.1) {
+      this._localTemp = null;
+      displayTemp = haTemp;
+    }
 
     let modeButtons = '<div class="modes">';
     modes.forEach(mode => {
@@ -43,7 +58,6 @@ class AirconControlCard extends HTMLElement {
           outline: none;
           transition: background-color 0.3s ease;
         }
-        /* Power button */
         #power {
           background-color: #16a085;
           color: white;
@@ -56,8 +70,6 @@ class AirconControlCard extends HTMLElement {
         #power:hover {
           background-color: #1abc9c;
         }
-
-        /* Temperature circle */
         .temp {
           width: 120px;
           height: 120px;
@@ -72,8 +84,6 @@ class AirconControlCard extends HTMLElement {
           box-shadow: 0 0 15px #16a085;
           user-select: none;
         }
-
-        /* Controls +/- buttons */
         .controls {
           display: flex;
           justify-content: center;
@@ -101,8 +111,6 @@ class AirconControlCard extends HTMLElement {
           cursor: not-allowed;
           box-shadow: none;
         }
-
-        /* Mode buttons */
         .modes {
           text-align: center;
           margin-bottom: 20px;
@@ -134,17 +142,15 @@ class AirconControlCard extends HTMLElement {
         <button id="power">${climate.state === 'off' ? 'Turn On' : 'Turn Off'}</button>
       </div>
 
-      <div class="temp">${currentTemp}°C</div>
+      <div class="temp">${displayTemp.toFixed(1)}°C</div>
 
       ${modeButtons}
 
       <div class="controls">
-        <button id="dec" ${currentTemp <= minTemp ? 'disabled' : ''}>-</button>
-        <button id="inc" ${currentTemp >= maxTemp ? 'disabled' : ''}>+</button>
+        <button id="dec" ${displayTemp <= minTemp ? 'disabled' : ''}>-</button>
+        <button id="inc" ${displayTemp >= maxTemp ? 'disabled' : ''}>+</button>
       </div>
     `;
-
-    // Event listeners
 
     this.querySelector('#power').addEventListener('click', () => {
       const service = climate.state === 'off' ? 'turn_on' : 'turn_off';
@@ -180,17 +186,8 @@ class AirconControlCard extends HTMLElement {
     if (newTemp < minTemp) newTemp = minTemp;
     if (newTemp > maxTemp) newTemp = maxTemp;
 
-    // Update temperature display immediately
-    const tempDiv = this.querySelector('.temp');
-    if (tempDiv) {
-      tempDiv.textContent = `${newTemp}°C`;
-    }
-
-    // Disable buttons accordingly
-    const decBtn = this.querySelector('#dec');
-    const incBtn = this.querySelector('#inc');
-    if (decBtn) decBtn.disabled = newTemp <= minTemp;
-    if (incBtn) incBtn.disabled = newTemp >= maxTemp;
+    // Save optimistic temp for flicker fix
+    this._localTemp = newTemp;
 
     // Call HA service to set temperature
     this._hass.callService('climate', 'set_temperature', {
