@@ -231,21 +231,22 @@ class AirconControlCard extends HTMLElement {
           align-items: center;
           justify-content: center;
           position: relative;
+          box-shadow:
+            0 0 20px 10px transparent; /* reset */
         }
-        /* Glow only outside circle, half arc */
-        .temp-circle::after {
+        /* Glow bottom half ring around the circle */
+        .temp-circle::before {
           content: '';
           position: absolute;
-          bottom: 4px;
-          left: 15%;
-          width: 70%;
-          height: 8px;
-          box-shadow: 0 0 20px 8px ${glowColor};
-          border-radius: 50%;
-          filter: blur(8px);
-          clip-path: polygon(0% 100%, 100% 100%, 100% 50%, 0% 50%);
-          /* creates glow on bottom half outside circle */
+          bottom: 0;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 100px;
+          height: 50px;
+          border-radius: 50% / 100%;
+          box-shadow: 0 0 25px 12px ${glowColor};
           pointer-events: none;
+          z-index: -1;
         }
         .temp-value {
           font-size: 32px;
@@ -288,46 +289,65 @@ class AirconControlCard extends HTMLElement {
         }
         .styled-room-slider {
           width: 100%;
-          height: 32px; /* made fatter */
+          height: 28px;
           -webkit-appearance: none;
           appearance: none;
+          border-radius: 16px;
+          background: #444;
+          outline: none;
+          transition: background 0.3s ease;
+          margin: 0;
+          position: relative;
+          overflow: hidden;
+        }
+        /* colored fill behind the slider track */
+        .styled-room-slider::-webkit-slider-runnable-track {
+          height: 28px;
           border-radius: 16px;
           background: linear-gradient(
             to right,
             var(--fill-color) var(--percent),
             #444 var(--percent)
           );
-          outline: none;
-          transition: background 0.3s ease;
-          margin: 0;
         }
+        .styled-room-slider::-moz-range-track {
+          height: 28px;
+          border-radius: 16px;
+          background: linear-gradient(
+            to right,
+            var(--fill-color) var(--percent),
+            #444 var(--percent)
+          );
+        }
+
         /* Slider thumb */
         .styled-room-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
           width: 20px;
-          height: 32px;
+          height: 28px;
           border-radius: 8px;
           background: ${glowColor};
           cursor: pointer;
-          transition: background-color 0.3s ease;
           border: none;
           margin-top: 0px;
           position: relative;
           z-index: 10;
+          transition: background-color 0.3s ease;
         }
         .styled-room-slider::-webkit-slider-thumb:hover {
           background-color: #fff;
         }
         .styled-room-slider::-moz-range-thumb {
           width: 20px;
-          height: 32px;
+          height: 28px;
           border-radius: 8px;
           background: ${glowColor};
           cursor: pointer;
           border: none;
           position: relative;
           z-index: 10;
+          transition: background-color 0.3s ease;
         }
         .styled-room-slider::-moz-range-thumb:hover {
           background-color: #fff;
@@ -335,7 +355,7 @@ class AirconControlCard extends HTMLElement {
 
         .slider-info {
           position: relative;
-          height: 32px;
+          height: 28px;
           display: flex;
           justify-content: flex-start;
           align-items: center;
@@ -352,6 +372,9 @@ class AirconControlCard extends HTMLElement {
         .slider-status {
           white-space: nowrap;
           font-weight: 600;
+          position: relative;
+          color: white;
+          user-select: none;
         }
         .percent-center {
           position: absolute;
@@ -414,46 +437,38 @@ class AirconControlCard extends HTMLElement {
     });
 
     this.querySelector('#dec-setpoint').addEventListener('click', () => {
-      let nt = this._localTemp ?? displayTemp;
-      nt = nt - 1;
-      if (nt < minTemp) nt = minTemp;
-      this._localTemp = nt;
+      const newTemp = Math.max(minTemp, displayTemp - 0.5);
+      this._localTemp = newTemp;
       hass.callService('climate', 'set_temperature', {
         entity_id: cfg.entity,
-        temperature: nt
+        temperature: newTemp
       });
     });
-
     this.querySelector('#inc-setpoint').addEventListener('click', () => {
-      let nt = this._localTemp ?? displayTemp;
-      nt = nt + 1;
-      if (nt > maxTemp) nt = maxTemp;
-      this._localTemp = nt;
+      const newTemp = Math.min(maxTemp, displayTemp + 0.5);
+      this._localTemp = newTemp;
       hass.callService('climate', 'set_temperature', {
         entity_id: cfg.entity,
-        temperature: nt
+        temperature: newTemp
       });
     });
 
-    // Room slider event handling (debounced)
+    // Room slider event (debounced)
     let sliderTimeout;
     this.querySelectorAll('.styled-room-slider').forEach(slider => {
       slider.addEventListener('input', e => {
         const el = e.target;
         const entityId = el.getAttribute('data-entity');
         const val = Number(el.value);
-
-        // Update slider background fill dynamically
         el.style.setProperty('--percent', `${val}%`);
 
-        // Update the displayed percentage value
+        // Update slider percent text
         const statusSpan = el.nextElementSibling.querySelector('.slider-status');
         if (statusSpan) statusSpan.textContent = `${val}%`;
 
-        // Clear any previous timeout
         if (sliderTimeout) clearTimeout(sliderTimeout);
         sliderTimeout = setTimeout(() => {
-          this._localTemp = null; // reset local temp so display is accurate
+          this._localTemp = null;
           hass.callService('cover', 'set_cover_position', {
             entity_id: entityId,
             position: val
