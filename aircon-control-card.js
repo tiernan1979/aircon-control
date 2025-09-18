@@ -19,9 +19,9 @@ class AirconControlCard extends HTMLElement {
     const modes = ['cool', 'heat', 'fan_only', 'dry', 'auto'];
     const currentMode = climate.attributes.hvac_mode || climate.attributes.operation_mode || climate.state;
 
-    // Get min/max temps if available
-    const minTemp = climate.attributes.min_temp || 16; // fallback
-    const maxTemp = climate.attributes.max_temp || 30; // fallback
+    // Get min/max temps if available, fallback to sensible defaults
+    const minTemp = climate.attributes.min_temp || 16;
+    const maxTemp = climate.attributes.max_temp || 30;
     const currentTemp = climate.attributes.temperature || climate.attributes.current_temperature || minTemp;
 
     let modeButtons = '<div class="modes">';
@@ -144,6 +144,8 @@ class AirconControlCard extends HTMLElement {
       </div>
     `;
 
+    // Event listeners
+
     this.querySelector('#power').addEventListener('click', () => {
       const service = climate.state === 'off' ? 'turn_on' : 'turn_off';
       this._hass.callService('climate', service, { entity_id: this.config.entity });
@@ -159,8 +161,13 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
-    this.querySelector('#inc').addEventListener('click', () => this._changeTemp(1, minTemp, maxTemp));
-    this.querySelector('#dec').addEventListener('click', () => this._changeTemp(-1, minTemp, maxTemp));
+    this.querySelector('#inc').addEventListener('click', () => {
+      this._changeTemp(1, minTemp, maxTemp);
+    });
+
+    this.querySelector('#dec').addEventListener('click', () => {
+      this._changeTemp(-1, minTemp, maxTemp);
+    });
   }
 
   _changeTemp(delta, minTemp, maxTemp) {
@@ -173,6 +180,19 @@ class AirconControlCard extends HTMLElement {
     if (newTemp < minTemp) newTemp = minTemp;
     if (newTemp > maxTemp) newTemp = maxTemp;
 
+    // Update temperature display immediately
+    const tempDiv = this.querySelector('.temp');
+    if (tempDiv) {
+      tempDiv.textContent = `${newTemp}°C`;
+    }
+
+    // Disable buttons accordingly
+    const decBtn = this.querySelector('#dec');
+    const incBtn = this.querySelector('#inc');
+    if (decBtn) decBtn.disabled = newTemp <= minTemp;
+    if (incBtn) incBtn.disabled = newTemp >= maxTemp;
+
+    // Call HA service to set temperature
     this._hass.callService('climate', 'set_temperature', {
       entity_id: this.config.entity,
       temperature: newTemp,
