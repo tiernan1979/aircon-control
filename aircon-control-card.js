@@ -226,7 +226,7 @@ class AirconControlCard extends HTMLElement {
         .temp-circle {
           width: 140px;
           height: 140px;
-          background: #222;
+          background: radial-gradient(circle at 30% 30%, #444, #111); /* shiny ball effect */
           border-radius: 50%;
           display: flex;
           flex-direction: column;
@@ -234,27 +234,43 @@ class AirconControlCard extends HTMLElement {
           justify-content: center;
           position: relative;
           z-index: 1;
-          color: white; /* bright text */
-          font-size: 34px; /* base 32 + 2 */
+          color: white;
+          font-size: 34px;
           font-weight: 600;
+          box-shadow: inset -5px -5px 15px rgba(255, 255, 255, 0.2),
+                      inset 5px 5px 15px rgba(0, 0, 0, 0.4);
         }
-
+        
+        .temp-circle::after {
+          content: '';
+          position: absolute;
+          top: 20px;
+          left: 20px;
+          width: 40px;
+          height: 20px;
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 50%;
+          filter: blur(1px);
+          z-index: 2;
+        }
+        
         .temp-circle.glow::before {
           content: '';
           position: absolute;
-          top: 50%;
+          bottom: -20px; /* positions glow 20px below the circle */
           left: 50%;
+          transform: translateX(-50%);
           width: 180px;
-          height: 180px;
+          height: 90px;
           background: ${glowColor};
-          border-radius: 0 0 90px 90px / 0 0 90px 90px; /* bottom half circle */
-          transform: translate(-50%, -50%);
-          filter: blur(15px);
+          border-radius: 50%;
+          filter: blur(25px);
           opacity: 0.6;
           z-index: 0;
           animation: halfGlowPulse 5s infinite ease-in-out;
           pointer-events: none;
         }
+
 
         @keyframes halfGlowPulse {
           0%, 100% {
