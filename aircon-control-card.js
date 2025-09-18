@@ -237,3 +237,4 @@ class AirconControlCard extends HTMLElement {
   }
 }
 
+customElements.define('aircon-control-card', AirconControlCard);
