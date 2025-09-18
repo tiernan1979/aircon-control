@@ -310,7 +310,7 @@ class AirconControlCard extends HTMLElement {
           height: 28px;
           -webkit-appearance: none;
           appearance: none;
-          border-radius: 12px;
+          border-radius: 5px;
           background: linear-gradient(
             to right,
             var(--fill-color) var(--percent),
