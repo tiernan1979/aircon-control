@@ -40,12 +40,12 @@ class AirconControlCard extends HTMLElement {
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#CDB79E',       name: 'Off' },
-      cool:     { icon: 'mdi:snowflake',     color: '#2196F3',     name: 'Cool' },
-      heat:     { icon: 'mdi:fire',          color: '#F44336',     name: 'Heat' },
-      fan_only: { icon: 'mdi:fan',           color: '#9E9E9E',     name: 'Fan' },
-      dry:      { icon: 'mdi:water-percent',  color: '#009688',     name: 'Dry' },
-      auto:     { icon: 'mdi:autorenew',     color: '#FFC107',     name: 'Auto' },
+      off:      { icon: 'mdi:power',         color: '#D69E5E', name: 'Off' },
+      cool:     { icon: 'mdi:snowflake',     color: '#2196F3', name: 'Cool' },
+      heat:     { icon: 'mdi:fire',          color: '#F44336', name: 'Heat' },
+      fan_only: { icon: 'mdi:fan',           color: '#9E9E9E', name: 'Fan' },
+      dry:      { icon: 'mdi:water-percent', color: '#009688', name: 'Dry' },
+      auto:     { icon: 'mdi:autorenew',     color: '#FFC107', name: 'Auto' },
     };
 
     const glowColor = modeData[currentMode]?.color ?? '#16a085';
@@ -160,6 +160,7 @@ class AirconControlCard extends HTMLElement {
           max-width: 360px;
           user-select: none;
         }
+
         .modes, .fan-modes {
           display: flex;
           justify-content: center;
@@ -167,6 +168,7 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 12px;
         }
+
         .mode-btn, .fan-btn {
           display: flex;
           flex-direction: column;
@@ -180,12 +182,15 @@ class AirconControlCard extends HTMLElement {
           color: #ccc;
           transition: color 0.3s;
         }
+
         .mode-btn.mode-selected, .fan-btn.fan-selected {
           color: ${glowColor};
         }
+
         .mode-btn ha-icon, .fan-btn ha-icon {
           font-size: 24px;
         }
+
         .mode-name, .fan-name {
           font-size: 12px;
         }
@@ -197,6 +202,7 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 16px;
         }
+
         .setpoint-button {
           width: 32px;
           height: 32px;
@@ -210,6 +216,7 @@ class AirconControlCard extends HTMLElement {
           cursor: pointer;
           transition: background-color 0.3s;
         }
+
         .setpoint-button:hover {
           background: ${glowColor};
         }
@@ -227,36 +234,28 @@ class AirconControlCard extends HTMLElement {
           z-index: 1;
         }
 
-        .temp-circle.glow::after {
+        .temp-circle::before {
           content: "";
           position: absolute;
-          bottom: 0;
+          bottom: -10px;
+          left: -10px;
           width: 160px;
           height: 80px;
-          border-radius: 50% / 100% 100% 0 0;
+          border-radius: 80px 80px 0 0;
           background: ${glowColor};
-          filter: blur(25px);
-          opacity: 0.6;
-          animation: glowPulse 5s infinite ease-in-out;
+          filter: blur(20px);
+          opacity: 0.4;
           z-index: -1;
         }
 
-        .temp-circle:not(.glow)::after {
-          content: "";
-          position: absolute;
-          bottom: 0;
-          width: 160px;
-          height: 80px;
-          border-radius: 50% / 100% 100% 0 0;
-          background: ${glowColor};
-          filter: blur(25px);
-          opacity: 0.3;
-          z-index: -1;
+        .temp-circle.glow::before {
+          animation: glowPulse 5s infinite ease-in-out;
+          opacity: 0.8;
         }
 
         @keyframes glowPulse {
           0%, 100% {
-            opacity: 0.3;
+            opacity: 0.4;
           }
           50% {
             opacity: 1;
@@ -268,6 +267,7 @@ class AirconControlCard extends HTMLElement {
           font-weight: 600;
           color: white;
         }
+
         .mode-in-circle {
           margin-top: 4px;
           display: flex;
@@ -287,6 +287,7 @@ class AirconControlCard extends HTMLElement {
           align-items: center;
           gap: 8px;
         }
+
         .sensor-line ha-icon {
           font-size: 14px;
           color: #888;
@@ -298,13 +299,15 @@ class AirconControlCard extends HTMLElement {
           flex-direction: column;
           gap: 10px;
         }
+
         .room-block {
           position: relative;
           width: 100%;
         }
+
         .styled-room-slider {
           width: 100%;
-          height: 24px;
+          height: 28px;
           -webkit-appearance: none;
           appearance: none;
           border-radius: 12px;
@@ -317,16 +320,19 @@ class AirconControlCard extends HTMLElement {
           transition: background 0.3s ease;
           margin: 0;
         }
+
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
           width: 0;
           height: 0;
         }
+
         .styled-room-slider.no-thumb::-moz-range-thumb {
           width: 0;
           height: 0;
         }
+
         .slider-info {
           position: absolute;
           top: 2px;
@@ -340,9 +346,11 @@ class AirconControlCard extends HTMLElement {
           font-size: 13px;
           color: white;
         }
+
         .slider-name {
           flex: 1;
         }
+
         .slider-status, .slider-temp {
           width: 50px;
           text-align: right;
@@ -369,9 +377,7 @@ class AirconControlCard extends HTMLElement {
       ${roomControls}
     `;
 
-    // Event listeners unchanged...
-    // [snip – no changes needed for the JS logic below]
-
+    // (event listeners unchanged)
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const mode = btn.getAttribute('data-mode');
