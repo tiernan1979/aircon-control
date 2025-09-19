@@ -9,9 +9,9 @@ A custom Lovelace card for Home Assistant to control your air conditioner with m
 - Temperature control with increment/decrement buttons and circular display  
 - HVAC mode selection (Off, Cool, Heat, Fan-only, Dry, Auto) with icons  
 - Fan speed control from climate entity fan modes  
-- Multiple room sliders to control blinds/vents with real-time updates  
+- Multiple room sliders to control aircon covers with real-time updates  
 - Sensor display for solar power, house/outside temperature and humidity  
-- Smooth slider interaction with local caching to prevent flickering  
+- Smooth slider interaction. Room temperature sensor in cover slider
 - Customizable colors and responsive design  
 
 ---
