@@ -20,11 +20,13 @@ A custom Lovelace card for Home Assistant to control your air conditioner with m
 
 ### HACS Installation (Recommended)
 
-1. In Home Assistant, go to **HACS > Frontend**  
-2. Click **Explore & Add Repositories**  
-3. Search for **Aircon Control Card**  
-4. Click **Download** and then **Install**  
-5. Add the resource automatically or manually verify it's added in **Settings > Dashboards > Resources**
+1. In Home Assistant, go to **HACS**  
+2. Click **Custom Repositories**
+3. Add Repository https://github.com/tiernan1979/aircon-control/
+4. Select type as Dashboard 
+5. Search for **Aircon Control Card** 
+6. Click **Download** and then **Install**  
+7. Add the resource automatically or manually verify it's added in **Settings > Dashboards > Resources**
 
 ### Manual Installation
 
