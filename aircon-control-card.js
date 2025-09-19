@@ -30,8 +30,8 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 12px;
           background:
-            radial-gradient(circle at 60% 60%, rgba(255,105,180, 0.2), transparent 70%),
-            radial-gradient(circle at 30% 30%, rgba(186,85,211, 0.3), transparent 70%),
+            radial-gradient(circle at 60% 60%, var(--sphere-secondary, rgba(255,105,180, 0.2)), transparent 70%),
+            radial-gradient(circle at 30% 30%, var(--sphere-primary, rgba(186,85,211, 0.3)), transparent 70%),
             radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
           border-radius: 50px;
           padding: 12px;
@@ -352,6 +352,80 @@ class AirconControlCard extends HTMLElement {
     `;
   }
 
+  // Convert hex to RGB
+  hexToRgb(hex) {
+    let cleanHex = hex.replace(/^#/, '');
+    if (cleanHex.length === 3) {
+      cleanHex = cleanHex.split('').map(c => c + c).join('');
+    }
+    const r = parseInt(cleanHex.substring(0, 2), 16);
+    const g = parseInt(cleanHex.substring(2, 4), 16);
+    const b = parseInt(cleanHex.substring(4, 6), 16);
+    return { r, g, b };
+  }
+
+  // Convert RGB to HSL
+  rgbToHsl(r, g, b) {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    let h, s, l = (max + min) / 2;
+
+    if (max === min) {
+      h = s = 0; // achromatic
+    } else {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return { h: h * 360, s: s * 100, l: l * 100 };
+  }
+
+  // Convert HSL to RGB
+  hslToRgb(h, s, l) {
+    s /= 100;
+    l /= 100;
+    const c = (1 - Math.abs(2 * l - 1)) * s;
+    const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+    const m = l - c / 2;
+    let r = 0, g = 0, b = 0;
+
+    if (0 <= h && h < 60) {
+      r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+      r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+      r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+      r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+      r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+      r = c; g = 0; b = x;
+    }
+    r = Math.round((r + m) * 255);
+    g = Math.round((g + m) * 255);
+    b = Math.round((b + m) * 255);
+    return { r, g, b };
+  }
+
+  // Get complementary color
+  getComplementaryColor(hex) {
+    const { r, g, b } = this.hexToRgb(hex);
+    const { h, s, l } = this.rgbToHsl(r, g, b);
+    const compH = (h + 180) % 360; // Shift hue by 180 degrees
+    const compL = Math.min(l + 10, 80); // Slightly adjust lightness
+    const { r: newR, g: newG, b: newB } = this.hslToRgb(compH, s, compL);
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  }
+
   setConfig(config) {
     if (!config.entity) {
       throw new Error('You need to define an entity');
@@ -411,9 +485,11 @@ class AirconControlCard extends HTMLElement {
       ? this._hass.states[config.entity].attributes.fan_modes
       : fallbackFanModes;
     let fanSpeedButtons = '';
+    const defaultSliderColor = config.slider_color || '#1B86EF';
+    const fanColor = this.getComplementaryColor(defaultSliderColor);
     fanModes.forEach(fm => {
       fanSpeedButtons += `
-        <button class="fan-btn" data-fan-mode="${fm}" style="color:#ccc">
+        <button class="fan-btn" data-fan-mode="${fm}" style="color:#ccc" data-fan-color="${fanColor}">
           <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
         </button>`;
     });
@@ -439,8 +515,10 @@ class AirconControlCard extends HTMLElement {
       let roomControls = '';
       config.rooms.forEach(room => {
         const sliderColor = room.color ?? config.slider_color ?? '#1B86EF';
-        const gradientStart = this.shadeColor(sliderColor, -40);
-        const lightGradientEnd = this.shadeColor(sliderColor, 50); // Very light shade for unfilled part
+        const { r, g, b } = this.hexToRgb(this.shadeColor(sliderColor, -40));
+        const gradientStart = `rgba(${r}, ${g}, ${b}, 0.3)`; // Low opacity for darker shade
+        const { r: lr, g: lg, b: lb } = this.hexToRgb(this.shadeColor(sliderColor, 50));
+        const lightGradientEnd = `rgba(${lr}, ${lg}, ${lb}, 0.1)`; // Very low opacity for light shade
         roomControls += `
           <div class="room-block" data-entity="${room.slider_entity}">
             <input
@@ -641,11 +719,13 @@ class AirconControlCard extends HTMLElement {
 
     // Update fan mode buttons only if fan mode has changed
     if (this._lastStates.currentFanMode !== currentFanMode) {
+      const defaultSliderColor = cfg.slider_color || '#1B86EF';
+      const fanColor = this.getComplementaryColor(defaultSliderColor);
       this.shadowRoot.querySelectorAll('.fan-btn').forEach(btn => {
         const fm = btn.getAttribute('data-fan-mode');
         const sel = currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase();
         btn.classList.toggle('fan-selected', sel);
-        btn.style.color = sel ? glowColor : '#ccc';
+        btn.style.color = sel ? fanColor : '#ccc';
       });
       this._lastStates.currentFanMode = currentFanMode;
     }
