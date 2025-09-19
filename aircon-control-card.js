@@ -532,7 +532,6 @@ class AirconControlCard extends HTMLElement {
     
     this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
       const entityId = slider.getAttribute('data-entity');
-      const localVal = this._localSliderValues[entityId];
       const sliderEnt = hass.states[entityId];
       let sliderVal = 0;
       if (sliderEnt) {
@@ -543,22 +542,36 @@ class AirconControlCard extends HTMLElement {
         }
       }
       sliderVal = Math.max(0, Math.min(100, sliderVal));
-      const sliderDisplayVal = document.activeElement === slider ? (localVal ?? sliderVal) : sliderVal;
-      slider.style.setProperty('--percent', `${sliderDisplayVal}%`);
-
+    
+      // Only update slider if not focused (not being dragged)
       if (document.activeElement !== slider) {
-        slider.value = sliderDisplayVal;
+        // Use local value if available, else sliderVal
+        const localVal = this._localSliderValues[entityId];
+        const displayVal = (localVal !== undefined) ? localVal : sliderVal;
+        slider.value = displayVal;
+        slider.style.setProperty('--percent', `${displayVal}%`);
       }
-      slider.addEventListener('change', (e) => {
+    
+      // Update local value and style on input (live as user drags or clicks)
+      slider.addEventListener('input', e => {
         const val = Number(e.target.value);
-        const entityId = e.target.getAttribute('data-entity');
+        this._localSliderValues[entityId] = val;
+        e.target.style.setProperty('--percent', `${val}%`);
+      });
+    
+      // On change (release), send service call and clear local state
+      slider.addEventListener('change', e => {
+        const val = Number(e.target.value);
         this._localSliderValues[entityId] = val;
         hass.callService('cover', 'set_cover_position', {
           entity_id: entityId,
-          position: val
+          position: val,
         });
+        // Optionally clear local override after sending update
+        // delete this._localSliderValues[entityId];
       });
     });
+
   }
 
   getCardSize() {
