@@ -3,6 +3,7 @@ class AirconControlCard extends HTMLElement {
     super();
     this._localTemp = null;
     this._localSliderValues = {}; // ← NEW: stores temporary slider states
+    this._sliderCurrentlyDragging = false;
   }
 
   setConfig(config) {
@@ -116,6 +117,10 @@ class AirconControlCard extends HTMLElement {
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
       roomControls += '<div class="room-section">';
       cfg.rooms.forEach(room => {
+        if (this._sliderCurrentlyDragging) {
+          return;
+        }
+
         const sliderEnt = hass.states[room.slider_entity];
         const sensorEnt = hass.states[room.sensor_entity];
         let sliderVal = 0;
@@ -549,19 +554,21 @@ class AirconControlCard extends HTMLElement {
     
       slider.addEventListener('pointerdown', () => {
         this._sliderDragging[entityId] = true;
+        this._sliderCurrentlyDragging = true;
       });
-    
-      // Listen for pointerup/cancel on the whole document to reliably detect drag end
+      
       const endDrag = () => {
         if (this._sliderDragging[entityId]) {
           this._sliderDragging[entityId] = false;
-          // Optionally trigger a refresh or re-render here if needed
+          this._sliderCurrentlyDragging = false;
         }
       };
-    
+      
+      // Use `window` to catch release even outside the slider
       window.addEventListener('pointerup', endDrag);
       window.addEventListener('pointercancel', endDrag);
       window.addEventListener('pointerleave', endDrag);
+
     
       // Only update slider if not dragging
       if (!this._sliderDragging[entityId]) {
