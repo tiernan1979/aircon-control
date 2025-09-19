@@ -542,6 +542,7 @@ class AirconControlCard extends HTMLElement {
     this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
       const entityId = slider.getAttribute('data-entity');
       const sliderEnt = hass.states[entityId];
+    
       let sliderVal = 0;
       if (sliderEnt) {
         if (sliderEnt.attributes.current_position != null) {
@@ -552,43 +553,50 @@ class AirconControlCard extends HTMLElement {
       }
       sliderVal = Math.max(0, Math.min(100, sliderVal));
     
-      // Only update slider if not focused (not being dragged)
+      // Only update slider UI if not being actively dragged
       if (document.activeElement !== slider) {
-        // Use local value if available, else sliderVal
-        const localVal = this._localSliderValues[entityId];
-        const displayVal = (localVal !== undefined) ? localVal : sliderVal;
-        slider.value = displayVal;
-        slider.style.setProperty('--percent', `${displayVal}%`);
-
-        // Update the slider-status text
+        slider.value = sliderVal;
+        slider.style.setProperty('--percent', `${sliderVal}%`);
+    
+        // ✅ Update the slider-status text properly
         const sliderStatus = slider.parentElement.querySelector('.slider-status');
         if (sliderStatus) {
-          sliderStatus.textContent = `$[displayVal]$`;
+          sliderStatus.textContent = `${sliderVal}%`;
         }
       }
     
-      // Update local value and style on input (live as user drags or clicks)
+      // ✅ Live update during sliding (input)
       slider.addEventListener('input', e => {
         const val = Number(e.target.value);
         const entityId = e.target.getAttribute('data-entity');
         this._localSliderValues[entityId] = val;
+    
+        // Update visual track style
         e.target.style.setProperty('--percent', `${val}%`);
-        
-        // Update the displayed numeric value
-        const sliderValueDisplay = e.target.parentElement.querySelector('.slider-status');
-        if (sliderValueDisplay) {
-          sliderValueDisplay.textContent = `${val}%`;
+    
+        // ✅ Update slider-status text live
+        const sliderStatus = e.target.parentElement.querySelector('.slider-status');
+        if (sliderStatus) {
+          sliderStatus.textContent = `${val}%`;
         }
       });
-
-      
+    
+      // ✅ On release, commit value to HA and clear local override
       slider.addEventListener('change', e => {
         const val = Number(e.target.value);
+        const entityId = e.target.getAttribute('data-entity');
+        this._localSliderValues[entityId] = val;
+    
         hass.callService('cover', 'set_cover_position', {
           entity_id: entityId,
-          position: val
+          position: val,
         });
+    
+        // Optional: Clear local override after sending (recommended)
+        delete this._localSliderValues[entityId];
       });
+    });
+
 
     });
 
