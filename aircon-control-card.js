@@ -8,7 +8,7 @@ class AirconControlCard extends HTMLElement {
     this._setpointListenersAdded = false;
     this.attachShadow({ mode: 'open' });
 
-    // Initialize HTML structure once, including modes, fan-modes, and room-section
+    // Initialize HTML structure once
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -325,10 +325,6 @@ class AirconControlCard extends HTMLElement {
     this.config = config;
     this.showModeNames = config.show_mode_names !== false;
 
-    // Initialize UI elements based on config
-    const hass = this._hass;
-    if (!hass) return;
-
     const modeData = {
       off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
       cool: { icon: 'mdi:snowflake', color: '#2196F3', name: 'Cool' },
@@ -338,7 +334,7 @@ class AirconControlCard extends HTMLElement {
       auto: { icon: 'mdi:autorenew', color: '#FFC107', name: 'Auto' },
     };
 
-    // Initialize mode buttons
+    // Initialize HVAC mode buttons
     const modesContainer = this.shadowRoot.querySelector('.modes');
     let modeButtons = '';
     Object.entries(modeData).forEach(([modeKey, md]) => {
@@ -351,49 +347,51 @@ class AirconControlCard extends HTMLElement {
     modesContainer.innerHTML = modeButtons;
 
     modesContainer.querySelectorAll('.mode-btn').forEach(btn => {
-      // Remove existing listeners to prevent duplicates
       const newBtn = btn.cloneNode(true);
       btn.parentNode.replaceChild(newBtn, btn);
       newBtn.addEventListener('click', () => {
         const mode = newBtn.getAttribute('data-mode');
-        if (mode === 'off') {
-          hass.callService('climate', 'turn_off', { entity_id: config.entity });
-        } else {
-          hass.callService('climate', 'set_hvac_mode', {
-            entity_id: config.entity,
-            hvac_mode: mode
-          });
+        if (this._hass) {
+          if (mode === 'off') {
+            this._hass.callService('climate', 'turn_off', { entity_id: config.entity });
+          } else {
+            this._hass.callService('climate', 'set_hvac_mode', {
+              entity_id: config.entity,
+              hvac_mode: mode
+            });
+          }
         }
       });
     });
 
-    // Initialize fan mode buttons
+    // Initialize fan mode buttons with fallback
     const fanModesContainer = this.shadowRoot.querySelector('.fan-modes');
-    if (hass.states[config.entity]?.attributes.fan_modes?.length > 0) {
-      const fanModes = hass.states[config.entity].attributes.fan_modes;
-      let fanSpeedButtons = '';
-      fanModes.forEach(fm => {
-        fanSpeedButtons += `
-          <button class="fan-btn" data-fan-mode="${fm}" style="color:#ccc">
-            <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
-          </button>`;
-      });
-      fanModesContainer.innerHTML = fanSpeedButtons;
+    const fallbackFanModes = ['low', 'medium', 'high', 'auto']; // Fallback if hass is unavailable
+    const fanModes = this._hass && this._hass.states[config.entity]?.attributes.fan_modes?.length > 0
+      ? this._hass.states[config.entity].attributes.fan_modes
+      : fallbackFanModes;
+    let fanSpeedButtons = '';
+    fanModes.forEach(fm => {
+      fanSpeedButtons += `
+        <button class="fan-btn" data-fan-mode="${fm}" style="color:#ccc">
+          <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
+        </button>`;
+    });
+    fanModesContainer.innerHTML = fanSpeedButtons;
 
-      fanModesContainer.querySelectorAll('.fan-btn').forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', () => {
-          const fm = newBtn.getAttribute('data-fan-mode');
-          hass.callService('climate', 'set_fan_mode', {
+    fanModesContainer.querySelectorAll('.fan-btn').forEach(btn => {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', () => {
+        const fm = newBtn.getAttribute('data-fan-mode');
+        if (this._hass) {
+          this._hass.callService('climate', 'set_fan_mode', {
             entity_id: config.entity,
             fan_mode: fm
           });
-        });
+        }
       });
-    } else {
-      fanModesContainer.innerHTML = '';
-    }
+    });
 
     // Initialize room controls
     const roomSection = this.shadowRoot.querySelector('.room-section');
@@ -408,13 +406,14 @@ class AirconControlCard extends HTMLElement {
               type="range"
               class="styled-room-slider no-thumb"
               min="0" max="100" step="1"
+              value="0"
               data-entity="${room.slider_entity}"
-              style="--gradient-start:${gradientStart}; --gradient-end:${sliderColor};"
+              style="--gradient-start:${gradientStart}; --gradient-end:${sliderColor}; --percent:0%;"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
               <span class="slider-temp"></span>
-              <span class="slider-status"></span>
+              <span class="slider-status">0%</span>
             </div>
           </div>`;
       });
@@ -424,7 +423,6 @@ class AirconControlCard extends HTMLElement {
         const entityId = slider.getAttribute('data-entity');
         this._sliderDragging[entityId] = false;
 
-        // Remove existing listeners to prevent duplicates
         const newSlider = slider.cloneNode(true);
         slider.parentNode.replaceChild(newSlider, slider);
 
@@ -453,10 +451,12 @@ class AirconControlCard extends HTMLElement {
         newSlider.addEventListener('change', e => {
           const val = Number(e.target.value);
           this._localSliderValues[entityId] = undefined;
-          hass.callService('cover', 'set_cover_position', {
-            entity_id: entityId,
-            position: val,
-          });
+          if (this._hass) {
+            this._hass.callService('cover', 'set_cover_position', {
+              entity_id: entityId,
+              position: val,
+            });
+          }
         });
       });
     } else {
@@ -465,27 +465,31 @@ class AirconControlCard extends HTMLElement {
 
     // Add setpoint button listeners
     if (!this._setpointListenersAdded) {
-      this.shadowRoot.querySelector('#dec-setpoint').addEventListener('click', () => {
-        const climate = hass.states[config.entity];
+      const decBtn = this.shadowRoot.querySelector('#dec-setpoint');
+      decBtn.addEventListener('click', () => {
+        if (!this._hass || !this._hass.states[config.entity]) return;
+        const climate = this._hass.states[config.entity];
         const minTemp = climate.attributes.min_temp ?? 16;
         const displayTemp = this._localTemp ?? (climate.attributes.temperature ?? climate.attributes.current_temperature ?? minTemp);
         let nt = displayTemp - 1;
         if (nt < minTemp) nt = minTemp;
         this._localTemp = nt;
-        hass.callService('climate', 'set_temperature', {
+        this._hass.callService('climate', 'set_temperature', {
           entity_id: config.entity,
           temperature: nt
         });
       });
 
-      this.shadowRoot.querySelector('#inc-setpoint').addEventListener('click', () => {
-        const climate = hass.states[config.entity];
+      const incBtn = this.shadowRoot.querySelector('#inc-setpoint');
+      incBtn.addEventListener('click', () => {
+        if (!this._hass || !this._hass.states[config.entity]) return;
+        const climate = this._hass.states[config.entity];
         const maxTemp = climate.attributes.max_temp ?? 30;
         const displayTemp = this._localTemp ?? (climate.attributes.temperature ?? climate.attributes.current_temperature ?? maxTemp);
         let nt = displayTemp + 1;
         if (nt > maxTemp) nt = maxTemp;
         this._localTemp = nt;
-        hass.callService('climate', 'set_temperature', {
+        this._hass.callService('climate', 'set_temperature', {
           entity_id: config.entity,
           temperature: nt
         });
@@ -498,7 +502,7 @@ class AirconControlCard extends HTMLElement {
     this._hass = hass;
     const cfg = this.config;
     if (!cfg || !hass.states[cfg.entity]) {
-      this.shadowRoot.innerHTML = `<hui-warning>${cfg.entity} not available</hui-warning>`;
+      this.shadowRoot.innerHTML = `<hui-warning>${cfg?.entity || 'Entity'} not available</hui-warning>`;
       return;
     }
 
