@@ -121,22 +121,32 @@ class AirconControlCard extends HTMLElement {
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
       roomControls += '<div class="room-section">';
       cfg.rooms.forEach(room => {
-        const sliderEnt = hass.states[room.slider_entity];
-        const sensorEnt = hass.states[room.sensor_entity];
+        const roomEntity = room.slider_entity;
+        const sensorEntity = room.sensor_entity;
+      
+        const sliderEnt = roomEntity && hass.states[roomEntity];
+        const sensorEnt = sensorEntity && hass.states[sensorEntity];
+      
         let sliderVal = 0;
+      
         if (sliderEnt) {
-          if (sliderEnt.attributes.current_position != null) {
+          if (sliderEnt.attributes && sliderEnt.attributes.current_position != null) {
             sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
           } else if (!isNaN(Number(sliderEnt.state))) {
             sliderVal = Number(sliderEnt.state);
           }
         }
-        sliderVal = Math.max(0, Math.min(100, sliderVal));
-        const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
-        const localVal = this._localSliderValues[room.slider_entity];
-        const recentUpdate = this._sliderUpdateTimestamps[room.slider_entity];
+      
+        sliderVal = Math.max(0, Math.min(100, sliderVal)); // clamp to 0-100
+      
+        const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state)))
+          ? Number(sensorEnt.state)
+          : null;
+      
+        const localVal = this._localSliderValues?.[roomEntity];
+        const recentUpdate = this._sliderUpdateTimestamps?.[roomEntity];
         const now = Date.now();
-        const showLocal = localVal !== undefined && recentUpdate && now - recentUpdate < 2000; // 2s threshold
+        const showLocal = localVal !== undefined && recentUpdate && (now - recentUpdate < 2000);
         const effectiveVal = showLocal ? localVal : sliderVal;
         const sliderColor = room.slider_color || cfg.default_slider_color || '#66ccff';
         
