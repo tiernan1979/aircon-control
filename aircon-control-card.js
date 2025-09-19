@@ -340,35 +340,36 @@ class AirconControlCard extends HTMLElement {
 
     // Initialize mode buttons
     const modesContainer = this.shadowRoot.querySelector('.modes');
-    if (!modesContainer.innerHTML) {
-      let modeButtons = '';
-      Object.entries(modeData).forEach(([modeKey, md]) => {
-        modeButtons += `
-          <button class="mode-btn" data-mode="${modeKey}" style="color:#ccc">
-            <ha-icon icon="${md.icon}" style="color:#ccc"></ha-icon>
-            ${this.showModeNames ? `<span class="mode-name">${md.name}</span>` : ''}
-          </button>`;
-      });
-      modesContainer.innerHTML = modeButtons;
+    let modeButtons = '';
+    Object.entries(modeData).forEach(([modeKey, md]) => {
+      modeButtons += `
+        <button class="mode-btn" data-mode="${modeKey}" style="color:#ccc">
+          <ha-icon icon="${md.icon}" style="color:#ccc"></ha-icon>
+          ${this.showModeNames ? `<span class="mode-name">${md.name}</span>` : ''}
+        </button>`;
+    });
+    modesContainer.innerHTML = modeButtons;
 
-      modesContainer.querySelectorAll('.mode-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const mode = btn.getAttribute('data-mode');
-          if (mode === 'off') {
-            hass.callService('climate', 'turn_off', { entity_id: config.entity });
-          } else {
-            hass.callService('climate', 'set_hvac_mode', {
-              entity_id: config.entity,
-              hvac_mode: mode
-            });
-          }
-        });
+    modesContainer.querySelectorAll('.mode-btn').forEach(btn => {
+      // Remove existing listeners to prevent duplicates
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', () => {
+        const mode = newBtn.getAttribute('data-mode');
+        if (mode === 'off') {
+          hass.callService('climate', 'turn_off', { entity_id: config.entity });
+        } else {
+          hass.callService('climate', 'set_hvac_mode', {
+            entity_id: config.entity,
+            hvac_mode: mode
+          });
+        }
       });
-    }
+    });
 
     // Initialize fan mode buttons
     const fanModesContainer = this.shadowRoot.querySelector('.fan-modes');
-    if (!fanModesContainer.innerHTML && hass.states[config.entity]?.attributes.fan_modes?.length > 0) {
+    if (hass.states[config.entity]?.attributes.fan_modes?.length > 0) {
       const fanModes = hass.states[config.entity].attributes.fan_modes;
       let fanSpeedButtons = '';
       fanModes.forEach(fm => {
@@ -380,19 +381,23 @@ class AirconControlCard extends HTMLElement {
       fanModesContainer.innerHTML = fanSpeedButtons;
 
       fanModesContainer.querySelectorAll('.fan-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const fm = btn.getAttribute('data-fan-mode');
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode.replaceChild(newBtn, btn);
+        newBtn.addEventListener('click', () => {
+          const fm = newBtn.getAttribute('data-fan-mode');
           hass.callService('climate', 'set_fan_mode', {
             entity_id: config.entity,
             fan_mode: fm
           });
         });
       });
+    } else {
+      fanModesContainer.innerHTML = '';
     }
 
     // Initialize room controls
     const roomSection = this.shadowRoot.querySelector('.room-section');
-    if (config.rooms && Array.isArray(config.rooms) && !roomSection.innerHTML) {
+    if (config.rooms && Array.isArray(config.rooms)) {
       let roomControls = '';
       config.rooms.forEach(room => {
         const sliderColor = room.color ?? config.slider_color ?? '#1B86EF';
@@ -419,19 +424,23 @@ class AirconControlCard extends HTMLElement {
         const entityId = slider.getAttribute('data-entity');
         this._sliderDragging[entityId] = false;
 
-        slider.addEventListener('pointerdown', () => {
+        // Remove existing listeners to prevent duplicates
+        const newSlider = slider.cloneNode(true);
+        slider.parentNode.replaceChild(newSlider, slider);
+
+        newSlider.addEventListener('pointerdown', () => {
           this._sliderDragging[entityId] = true;
         });
 
-        slider.addEventListener('pointerup', () => {
+        newSlider.addEventListener('pointerup', () => {
           this._sliderDragging[entityId] = false;
         });
 
-        slider.addEventListener('pointercancel', () => {
+        newSlider.addEventListener('pointercancel', () => {
           this._sliderDragging[entityId] = false;
         });
 
-        slider.addEventListener('input', e => {
+        newSlider.addEventListener('input', e => {
           const val = Number(e.target.value);
           this._localSliderValues[entityId] = val;
           e.target.style.setProperty('--percent', `${val}%`);
@@ -441,7 +450,7 @@ class AirconControlCard extends HTMLElement {
           }
         });
 
-        slider.addEventListener('change', e => {
+        newSlider.addEventListener('change', e => {
           const val = Number(e.target.value);
           this._localSliderValues[entityId] = undefined;
           hass.callService('cover', 'set_cover_position', {
@@ -450,6 +459,8 @@ class AirconControlCard extends HTMLElement {
           });
         });
       });
+    } else {
+      roomSection.innerHTML = '';
     }
 
     // Add setpoint button listeners
