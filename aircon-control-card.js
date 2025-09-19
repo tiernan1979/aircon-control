@@ -159,330 +159,339 @@ class AirconControlCard extends HTMLElement {
       });
       roomControls += '</div>';
     }
+    // If any slider is focused (being dragged), skip re-rendering innerHTML:
+    const sliders = this.querySelectorAll('.styled-room-slider.no-thumb');
+    let anySliderFocused = false;
+    sliders.forEach(slider => {
+      if (document.activeElement === slider) anySliderFocused = true;
+    });
+    
+    if (!anySliderFocused) {
+    
 
-    this.innerHTML = `
-      <style>
-        :host {
-          font-family: 'Roboto', sans-serif;
-          background: var(--card-background-color, #000); /* fallback to black */
-          color: var(--primary-text-color, white);
-          border-radius: 12px;
-          padding: 16px;
-          display: block;
-          max-width: 360px;
-          user-select: none;
-          transition: background-color 0.3s ease;
-        }
-
-        .modes, .fan-modes {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .mode-btn, .fan-btn {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 4px;
-          cursor: pointer;
-          background: transparent;
-          border: none;
-          outline: none;
-          color: #ccc;
-          transition: color 0.3s;
-          font-size: 14px; /* increased by +2 */
-        }
-
-        .mode-btn.mode-selected, .fan-btn.fan-selected {
-          color: ${glowColor};
-        }
-
-        .mode-btn ha-icon, .fan-btn ha-icon {
-          font-size: 26px; /* +2 */
-        }
-
-        .mode-name, .fan-name {
-          font-size: 14px; /* +2 */
-        }
-
-        .temp-setpoint-wrapper {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .setpoint-button {
-          width: 32px;
-          height: 32px;
-          background: #333;
-          border-radius: 50%;
-          font-size: 24px;
-          color: white;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: background-color 0.3s;
-        }
-
-        .setpoint-button:hover {
-          background: ${glowColor};
-        }
-        
-        .temp-circle-container {
-          position: relative;
-          width: 140px;
-          height: 140px;
-          margin: 0 16px; /* keep spacing for buttons */
-        }
-        
-
-        .temp-circle-container.glow .glow-bottom {
-          opacity: 0.6; /* brighter when ON */
-          animation: glowPulse 12s infinite ease-in-out;
-        }
-        
-        .glow-bottom {
-          position: absolute;
-          bottom: -12px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 140px;
-          height: 70px;
-          background: ${glowColor};
-          border-radius: 0 0 70px 70px / 0 0 70px 70px;
-          filter: blur(14px); /* reduce blur for visibility */
-          opacity: 0.2; /* increase base glow */
-          pointer-events: none;
-          transition: opacity 0.5s ease;
-          animation: none;
-          z-index: 0;
-        }
-                
-        .temp-circle {
-          position: relative;
-          z-index: 1;
-          width: 140px;
-          height: 140px;
-          border-radius: 50%;
-          background:
-            radial-gradient(circle at 60% 60%, rgba(255,105,180, 0.2), transparent 70%),   /* pink highlight */
-            radial-gradient(circle at 30% 30%, rgba(186,85,211, 0.3), transparent 70%),    /* purple swirl */
-            radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);                  /* black base */
-          box-shadow:
-            inset 0 10px 15px rgba(255, 255, 255, 0.1),
-            inset 0 -10px 15px rgba(0, 0, 0, 0.8);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          color: white;
-          font-size: 34px;
-          font-weight: 600;
-        }
-        
-        .temp-circle::before {
-          content: '';
-          position: absolute;
-          top: 18px;
-          left: 20px;
-          width: 48px;
-          height: 28px;
-          background: radial-gradient(circle at 30% 30%, rgba(255 255 255 / 0.8), transparent 70%);
-          border-radius: 50%;
-          filter: blur(2px);
-          pointer-events: none;
-          z-index: 2;
-        }
-        
-        .temp-circle::after {
-          content: '';
-          position: absolute;
-          top: 50px;
-          left: 80px;
-          width: 30px;
-          height: 15px;
-          background: radial-gradient(circle at 50% 50%, rgba(255 255 255 / 0.4), transparent 70%);
-          border-radius: 50%;
-          filter: blur(1.5px);
-          pointer-events: none;
-          z-index: 2;
-        }
-
-        .temp-circle .reflection {
-          position: absolute;
-          top: 30px;
-          left: 50px;
-          width: 40px;
-          height: 40px;
-          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-          filter: blur(6px);
-        }
-
-        @keyframes halfGlowPulse {
-          0%, 100% {
-            opacity: 0.2; /* subtle glow baseline */
+      this.innerHTML = `
+        <style>
+          :host {
+            font-family: 'Roboto', sans-serif;
+            background: var(--card-background-color, #000); /* fallback to black */
+            color: var(--primary-text-color, white);
+            border-radius: 12px;
+            padding: 16px;
+            display: block;
+            max-width: 360px;
+            user-select: none;
+            transition: background-color 0.3s ease;
           }
-          50% {
-            opacity: 0.6; /* soft max glow */
+  
+          .modes, .fan-modes {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
           }
-        }
-
-        .temp-value {
-          font-size: 30px; /* +2 */
-          font-weight: 600;
-          color: white;
-        }
-
-        .mode-in-circle {
-          margin-top: 6px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 18px; /* +2 */
-          color: ${glowColor};
-        }
-
-        .sensor-line {
-          font-size: 14px; /* +2 */
-          color: #777;
-          margin-top: 12px;
-          text-align: center;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .sensor-line ha-icon {
-          font-size: 16px; /* +2 */
-          color: #888;
-        }
-
-        .room-section {
-          margin-top: 12px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .room-block {
-          position: relative;
-          width: 100%;
-        }
-
-        .styled-room-slider {
-          width: 100%;
-          height: 34px;
-          -webkit-appearance: none;
-          appearance: none;
-          border-radius: 12px;
-          outline: none;
-          transition: background 0.3s ease;
-          margin: 0;
-          margin-bottom: -10px;
-        
-          background: linear-gradient(
-            to right,
-            var(--gradient-start, #0a3d73) 0%,
-            var(--gradient-end, #1B86EF) var(--percent),
-            #333 var(--percent),
-            #333 100%
-          );
-        }
-
-        .styled-room-slider.no-thumb::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 0;
-          height: 0;
-          transition: left 0.3s ease;
-        }
-
-        .styled-room-slider.no-thumb::-moz-range-thumb {
-          width: 0;
-          height: 0;
-          transition: left 0.3s ease;
-        }
-
-        .slider-info {
-          position: absolute;
-          top: 6px;
-          left: 12px;
-          right: 12px;
-          height: 22px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          pointer-events: none;
-          font-family: 'Georgia', 'Playfair Display', serif;
-          font-size: 15px; /* +2 */
-          color: white;
-        }
-
-        .sensor-line ha-icon[icon="mdi:home-outline"] {
-          color: #4fc3f7; /* light blue */
-        }
-        .sensor-line ha-icon[icon="mdi:weather-sunny"] {
-          color: #ffca28; /* sunny yellow */
-        }
-        .sensor-line ha-icon[icon="mdi:solar-power"] {
-          color: #fbc02d; /* golden */
-        }
-        
-        .slider-name {
-          flex: 1;
-          width: 200px;
-        }
-
-        .slider-status {
-          width: 50px;
-          text-align: right;
-        }
-
-        .slider-temp {
-          width: 50px;
-          text-align: center; /* center horizontally */
-          display: flex;
-          justify-content: center; /* horizontal centering with flex */
-          align-items: center;     /* vertical centering */
+  
+          .mode-btn, .fan-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: #ccc;
+            transition: color 0.3s;
+            font-size: 14px; /* increased by +2 */
+          }
+  
+          .mode-btn.mode-selected, .fan-btn.fan-selected {
+            color: ${glowColor};
+          }
+  
+          .mode-btn ha-icon, .fan-btn ha-icon {
+            font-size: 26px; /* +2 */
+          }
+  
+          .mode-name, .fan-name {
+            font-size: 14px; /* +2 */
+          }
+  
+          .temp-setpoint-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+          }
+  
+          .setpoint-button {
+            width: 32px;
+            height: 32px;
+            background: #333;
+            border-radius: 50%;
+            font-size: 24px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background-color 0.3s;
+          }
+  
+          .setpoint-button:hover {
+            background: ${glowColor};
+          }
           
-        }
-      </style>
-
-      ${modeButtons}
-      ${fanSpeedButtons}
-
-      <div class="temp-setpoint-wrapper">
-        <button class="setpoint-button" id="dec-setpoint">−</button>
-        <div class="temp-circle-container ${powerOn ? 'glow' : ''}">
-          <div class="glow-bottom"></div>
-          <div class="temp-circle">
-            <div class="reflection"></div>          
-            <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
-            <div class="mode-in-circle">
-              <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
-              <span>${modeData[currentMode]?.name}</span>
+          .temp-circle-container {
+            position: relative;
+            width: 140px;
+            height: 140px;
+            margin: 0 16px; /* keep spacing for buttons */
+          }
+          
+  
+          .temp-circle-container.glow .glow-bottom {
+            opacity: 0.6; /* brighter when ON */
+            animation: glowPulse 12s infinite ease-in-out;
+          }
+          
+          .glow-bottom {
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 70px;
+            background: ${glowColor};
+            border-radius: 0 0 70px 70px / 0 0 70px 70px;
+            filter: blur(14px); /* reduce blur for visibility */
+            opacity: 0.2; /* increase base glow */
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            animation: none;
+            z-index: 0;
+          }
+                  
+          .temp-circle {
+            position: relative;
+            z-index: 1;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background:
+              radial-gradient(circle at 60% 60%, rgba(255,105,180, 0.2), transparent 70%),   /* pink highlight */
+              radial-gradient(circle at 30% 30%, rgba(186,85,211, 0.3), transparent 70%),    /* purple swirl */
+              radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);                  /* black base */
+            box-shadow:
+              inset 0 10px 15px rgba(255, 255, 255, 0.1),
+              inset 0 -10px 15px rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 34px;
+            font-weight: 600;
+          }
+          
+          .temp-circle::before {
+            content: '';
+            position: absolute;
+            top: 18px;
+            left: 20px;
+            width: 48px;
+            height: 28px;
+            background: radial-gradient(circle at 30% 30%, rgba(255 255 255 / 0.8), transparent 70%);
+            border-radius: 50%;
+            filter: blur(2px);
+            pointer-events: none;
+            z-index: 2;
+          }
+          
+          .temp-circle::after {
+            content: '';
+            position: absolute;
+            top: 50px;
+            left: 80px;
+            width: 30px;
+            height: 15px;
+            background: radial-gradient(circle at 50% 50%, rgba(255 255 255 / 0.4), transparent 70%);
+            border-radius: 50%;
+            filter: blur(1.5px);
+            pointer-events: none;
+            z-index: 2;
+          }
+  
+          .temp-circle .reflection {
+            position: absolute;
+            top: 30px;
+            left: 50px;
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            filter: blur(6px);
+          }
+  
+          @keyframes halfGlowPulse {
+            0%, 100% {
+              opacity: 0.2; /* subtle glow baseline */
+            }
+            50% {
+              opacity: 0.6; /* soft max glow */
+            }
+          }
+  
+          .temp-value {
+            font-size: 30px; /* +2 */
+            font-weight: 600;
+            color: white;
+          }
+  
+          .mode-in-circle {
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 18px; /* +2 */
+            color: ${glowColor};
+          }
+  
+          .sensor-line {
+            font-size: 14px; /* +2 */
+            color: #777;
+            margin-top: 12px;
+            text-align: center;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+          }
+  
+          .sensor-line ha-icon {
+            font-size: 16px; /* +2 */
+            color: #888;
+          }
+  
+          .room-section {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+  
+          .room-block {
+            position: relative;
+            width: 100%;
+          }
+  
+          .styled-room-slider {
+            width: 100%;
+            height: 34px;
+            -webkit-appearance: none;
+            appearance: none;
+            border-radius: 12px;
+            outline: none;
+            transition: background 0.3s ease;
+            margin: 0;
+            margin-bottom: -10px;
+          
+            background: linear-gradient(
+              to right,
+              var(--gradient-start, #0a3d73) 0%,
+              var(--gradient-end, #1B86EF) var(--percent),
+              #333 var(--percent),
+              #333 100%
+            );
+          }
+  
+          .styled-room-slider.no-thumb::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 0;
+            height: 0;
+            transition: left 0.3s ease;
+          }
+  
+          .styled-room-slider.no-thumb::-moz-range-thumb {
+            width: 0;
+            height: 0;
+            transition: left 0.3s ease;
+          }
+  
+          .slider-info {
+            position: absolute;
+            top: 6px;
+            left: 12px;
+            right: 12px;
+            height: 22px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+            font-family: 'Georgia', 'Playfair Display', serif;
+            font-size: 15px; /* +2 */
+            color: white;
+          }
+  
+          .sensor-line ha-icon[icon="mdi:home-outline"] {
+            color: #4fc3f7; /* light blue */
+          }
+          .sensor-line ha-icon[icon="mdi:weather-sunny"] {
+            color: #ffca28; /* sunny yellow */
+          }
+          .sensor-line ha-icon[icon="mdi:solar-power"] {
+            color: #fbc02d; /* golden */
+          }
+          
+          .slider-name {
+            flex: 1;
+            width: 200px;
+          }
+  
+          .slider-status {
+            width: 50px;
+            text-align: right;
+          }
+  
+          .slider-temp {
+            width: 50px;
+            text-align: center; /* center horizontally */
+            display: flex;
+            justify-content: center; /* horizontal centering with flex */
+            align-items: center;     /* vertical centering */
+            
+          }
+        </style>
+  
+        ${modeButtons}
+        ${fanSpeedButtons}
+  
+        <div class="temp-setpoint-wrapper">
+          <button class="setpoint-button" id="dec-setpoint">−</button>
+          <div class="temp-circle-container ${powerOn ? 'glow' : ''}">
+            <div class="glow-bottom"></div>
+            <div class="temp-circle">
+              <div class="reflection"></div>          
+              <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
+              <div class="mode-in-circle">
+                <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
+                <span>${modeData[currentMode]?.name}</span>
+              </div>
             </div>
           </div>
+  
+          <button class="setpoint-button" id="inc-setpoint">+</button>
         </div>
-
-        <button class="setpoint-button" id="inc-setpoint">+</button>
-      </div>
-
-      ${sensorLine}
-
-      ${roomControls}
-    `;
-
+  
+        ${sensorLine}
+  
+        ${roomControls}
+      `;
+    }
     // Event listeners (unchanged)
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -550,6 +559,12 @@ class AirconControlCard extends HTMLElement {
         const displayVal = (localVal !== undefined) ? localVal : sliderVal;
         slider.value = displayVal;
         slider.style.setProperty('--percent', `${displayVal}%`);
+
+        // Update the slider-status text
+        const sliderStatus = slider.parentElement.querySelector('.slider-status');
+        if (sliderStatus) {
+          sliderStatus.textContent = `$[displayVal]$`;
+        }
       }
     
       // Update local value and style on input (live as user drags or clicks)
