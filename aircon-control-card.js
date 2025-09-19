@@ -128,23 +128,26 @@ class AirconControlCard extends HTMLElement {
         }
         sliderVal = Math.max(0, Math.min(100, sliderVal));
         const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
-        
-        // 🔄 NEW: Get local color override or fallback
+    
+        // Use local slider value if dragging, else live sliderVal
+        const localVal = this._localSliderValues[room.slider_entity];
+        const displayVal = (localVal !== undefined) ? localVal : sliderVal;
+    
+        // Color & gradient (unchanged)
         const sliderColor = room.color ?? this.config.slider_color ?? '#1B86EF';
-        const gradientStart = shadeColor(sliderColor, -40); // you'll need a utility like this
-        
-        // 🎨 Generate a dynamic gradient using sliderColor
+        const gradientStart = shadeColor(sliderColor, -40);
+    
         const sliderGradient = `linear-gradient(to right, ${shadeColor(sliderColor, -30)}, ${sliderColor}, ${shadeColor(sliderColor, 20)})`;
-        
+    
         roomControls += `
           <div class="room-block">
             <input
               type="range"
               class="styled-room-slider no-thumb"
               min="0" max="100" step="1"
-              value="${this._localSliderValues[room.slider_entity] ?? sliderVal}"
+              value="${displayVal}"
               data-entity="${room.slider_entity}"
-              style="--percent:${sliderVal}%; --gradient-start:${gradientStart}; --gradient-end:${sliderColor};"
+              style="--percent:${displayVal}%; --gradient-start:${gradientStart}; --gradient-end:${sliderColor};"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
@@ -153,12 +156,14 @@ class AirconControlCard extends HTMLElement {
                   ? `<span class="slider-temp">${sensorVal.toFixed(1)}°C</span>`
                   : `<span class="slider-temp"></span>`
               }
-              <span class="slider-status">${sliderVal}%</span>
+              <span class="slider-status">${displayVal}%</span>
             </div>
           </div>`;
       });
       roomControls += '</div>';
     }
+
+  }
 
     this.innerHTML = `
       <style>
@@ -553,11 +558,16 @@ class AirconControlCard extends HTMLElement {
       
       slider.addEventListener('pointerup', () => {
         this._sliderDragging[entityId] = false;
+        // Send the updated value to Home Assistant here
+        this.hass.callService('fan', 'set_percentage', {
+          entity_id: entityId,
+          percentage: Number(slider.value),
+        });
       });
-
+      
       slider.addEventListener('pointercancel', () => {
         this._sliderDragging[entityId] = false;
-      });     
+      });
       
       // Only update slider if not focused (not being dragged)
       if (!this._sliderDragging[entityId]) {
