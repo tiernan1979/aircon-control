@@ -1,6 +1,25 @@
 import { LitElement, html, css } from 'https://unpkg.com/lit-element@3.0.0/lit-element.js?module';
 import { fireEvent } from 'https://unpkg.com/custom-card-helpers@1.9.0/dist/index.js?module';
 
+// Editor dependencies (Lit and helpers)
+const LitElement = Object.getPrototypeOf(
+  customElements.get("ha-card")
+);
+const html = LitElement.prototype.html;
+const css = LitElement.prototype.css;
+const fireEvent = (node, type, detail, options) => {
+  options = options || {};
+  detail = detail === null || detail === undefined ? {} : detail;
+  const event = new Event(type, {
+    bubbles: options.bubbles === undefined ? true : options.bubbles,
+    cancelable: Boolean(options.cancelable),
+    composed: options.composed === undefined ? true : options.composed,
+  });
+  event.detail = detail;
+  node.dispatchEvent(event);
+  return event;
+}
+
 // Original AirconControlCard class (unchanged except for syntax fix)
 class AirconControlCard extends HTMLElement {
   constructor() {
