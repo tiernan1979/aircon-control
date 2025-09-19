@@ -247,6 +247,11 @@ class AirconControlCard extends HTMLElement {
           transition: background 0.3s ease;
           margin: 0;
           margin-bottom: -10px;
+          background: linear-gradient(
+            to right,
+            var(--gradient-end) var(--percent),
+            #333 var(--percent)
+          );
         }
 
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
@@ -366,7 +371,7 @@ class AirconControlCard extends HTMLElement {
 
     // Initialize fan mode buttons with fallback
     const fanModesContainer = this.shadowRoot.querySelector('.fan-modes');
-    const fallbackFanModes = ['low', 'medium', 'high', 'auto']; // Fallback if hass is unavailable
+    const fallbackFanModes = ['low', 'medium', 'high', 'auto'];
     const fanModes = this._hass && this._hass.states[config.entity]?.attributes.fan_modes?.length > 0
       ? this._hass.states[config.entity].attributes.fan_modes
       : fallbackFanModes;
