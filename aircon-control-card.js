@@ -131,7 +131,7 @@ class AirconControlCard extends HTMLElement {
         
         // 🔄 NEW: Get local color override or fallback
         const sliderColor = room.color ?? this.config.slider_color ?? '#1B86EF';
-        const gradientStart = shadeColor(sliderColor, -30); // you'll need a utility like this
+        const gradientStart = shadeColor(sliderColor, -40); // you'll need a utility like this
         
         // 🎨 Generate a dynamic gradient using sliderColor
         const sliderGradient = `linear-gradient(to right, ${shadeColor(sliderColor, -30)}, ${sliderColor}, ${shadeColor(sliderColor, 20)})`;
@@ -392,8 +392,8 @@ class AirconControlCard extends HTMLElement {
         
           background: linear-gradient(
             to right,
-            #115fab 0%,
-            #1B86EF var(--percent),
+            var(--gradient-start, #0a3d73) 0%,
+            var(--gradient-end, #1B86EF) var(--percent),
             #333 var(--percent),
             #333 100%
           );
