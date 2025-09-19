@@ -143,7 +143,7 @@ class AirconControlCard extends HTMLElement {
               min="0" max="100" step="1"
               value="${this._localSliderValues[room.slider_entity] ?? sliderVal}"
               data-entity="${room.slider_entity}"
-              style="background: ${sliderGradient};"
+              style="--percent:35%; --gradient-start:#115fab; --gradient-end:#1B86EF;"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
@@ -389,7 +389,13 @@ class AirconControlCard extends HTMLElement {
           margin: 0;
           margin-bottom: -5px;
         
-          background: linear-gradient(to right, #115fab, #1B86EF, #63b3ff);
+          background: linear-gradient(
+            to right,
+            var(--gradient-start, #115fab) 0%,
+            var(--gradient-end, #1B86EF) var(--percent),
+            #333 var(--percent),
+            #333 100%
+          );
         }
 
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
@@ -528,6 +534,7 @@ class AirconControlCard extends HTMLElement {
         const val = Number(e.target.value);
         const entityId = e.target.getAttribute('data-entity');
         this._localSliderValues[entityId] = val;
+        e.target.style.setProperty('--percent', `${val}%`);
       });
     
       slider.addEventListener('change', (e) => {
