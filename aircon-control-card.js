@@ -249,6 +249,7 @@ class AirconControlCard extends HTMLElement {
           margin-bottom: -10px;
           background: linear-gradient(
             to right,
+            var(--gradient-start) 0%,
             var(--gradient-end) var(--percent),
             #333 var(--percent)
           );
