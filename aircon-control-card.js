@@ -222,55 +222,79 @@ class AirconControlCard extends HTMLElement {
         .setpoint-button:hover {
           background: ${glowColor};
         }
-
-        .temp-circle {
+        
+        .temp-circle-container {
+          position: relative;
           width: 140px;
           height: 140px;
-          background: radial-gradient(circle at 30% 30%, #444, #111); /* shiny ball effect */
-          border-radius: 50%;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          z-index: 1;
-          color: white;
-          font-size: 34px;
-          font-weight: 600;
-          box-shadow: inset -5px -5px 15px rgba(255, 255, 255, 0.2),
-                      inset 5px 5px 15px rgba(0, 0, 0, 0.4);
+          margin: 0 16px; /* keep spacing for buttons */
         }
-        
-        .temp-circle::after {
-          content: '';
+
+        .glow-bottom {
           position: absolute;
-          top: 20px;
-          left: 20px;
-          width: 40px;
-          height: 20px;
-          background: rgba(255, 255, 255, 0.3);
-          border-radius: 50%;
-          filter: blur(1px);
-          z-index: 2;
-        }
-        
-        .temp-circle.glow::before {
-          content: '';
-          position: absolute;
-          bottom: -20px; /* positions glow 20px below the circle */
+          bottom: -20px; /* 10-20px below circle */
           left: 50%;
           transform: translateX(-50%);
           width: 180px;
           height: 90px;
           background: ${glowColor};
-          border-radius: 50%;
+          border-radius: 0 0 90px 90px / 0 0 90px 90px; /* bottom half ellipse */
           filter: blur(25px);
           opacity: 0.6;
-          z-index: 0;
           animation: halfGlowPulse 5s infinite ease-in-out;
+          z-index: 0; /* behind temp-circle */
           pointer-events: none;
+        }        
+        
+        .temp-circle {
+          position: relative;
+          z-index: 1; /* on top of glow */
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          background:
+            radial-gradient(circle at 30% 30%, #bbb, #444 60%, #111 90%),
+            radial-gradient(circle at 80% 20%, rgba(255 255 255 / 0.8), transparent 40%),
+            radial-gradient(circle at 50% 90%, rgba(255 255 255 / 0.2), transparent 70%);
+          box-shadow:
+            inset -8px -8px 20px rgba(255, 255, 255, 0.3),
+            inset 8px 8px 30px rgba(0, 0, 0, 0.8);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 34px;
+          font-weight: 600;
         }
-
+        
+        .temp-circle::before {
+          content: '';
+          position: absolute;
+          top: 18px;
+          left: 20px;
+          width: 48px;
+          height: 28px;
+          background: radial-gradient(circle at 30% 30%, rgba(255 255 255 / 0.8), transparent 70%);
+          border-radius: 50%;
+          filter: blur(2px);
+          pointer-events: none;
+          z-index: 2;
+        }
+        
+        .temp-circle::after {
+          content: '';
+          position: absolute;
+          top: 50px;
+          left: 80px;
+          width: 30px;
+          height: 15px;
+          background: radial-gradient(circle at 50% 50%, rgba(255 255 255 / 0.4), transparent 70%);
+          border-radius: 50%;
+          filter: blur(1.5px);
+          pointer-events: none;
+          z-index: 2;
+        }
 
         @keyframes halfGlowPulse {
           0%, 100% {
@@ -381,13 +405,17 @@ class AirconControlCard extends HTMLElement {
 
       <div class="temp-setpoint-wrapper">
         <button class="setpoint-button" id="dec-setpoint">−</button>
-        <div class="temp-circle ${powerOn ? 'glow' : ''}">
-          <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
-          <div class="mode-in-circle">
-            <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
-            <span>${modeData[currentMode]?.name}</span>
+        <div class="temp-circle-container ${powerOn ? 'glow' : ''}">
+          <div class="glow-bottom"></div>
+          <div class="temp-circle">
+            <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
+            <div class="mode-in-circle">
+              <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
+              <span>${modeData[currentMode]?.name}</span>
+            </div>
           </div>
         </div>
+
         <button class="setpoint-button" id="inc-setpoint">+</button>
       </div>
 
