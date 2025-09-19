@@ -531,13 +531,21 @@ class AirconControlCard extends HTMLElement {
     });
     
     this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
-      slider.addEventListener('input', (e) => {
-        const val = Number(e.target.value);
-        const entityId = e.target.getAttribute('data-entity');
-        this._localSliderValues[entityId] = val;
-        e.target.style.setProperty('--percent', `${val}%`);
-      });
-    
+      const entityId = slider.getAttribute('data-entity');
+      const localVal = this._localSliderValues[entityId];
+      const sliderEnt = hass.states[entityId];
+      let sliderVal = 0;
+      if (sliderEnt) {
+        if (sliderEnt.attributes.current_position != null) {
+          sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
+        } else if (!isNaN(Number(sliderEnt.state))) {
+          sliderVal = Number(sliderEnt.state);
+        }
+      }
+      sliderVal = Math.max(0, Math.min(100, sliderVal));
+      const sliderDisplayVal = document.activeElement === slider ? (localVal ?? sliderVal) : sliderVal;
+      slider.style.setProperty('--percent', `${sliderDisplayVal}%`);
+      slider.value = sliderDisplayVal;
       slider.addEventListener('change', (e) => {
         const val = Number(e.target.value);
         const entityId = e.target.getAttribute('data-entity');
