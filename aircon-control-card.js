@@ -592,8 +592,7 @@ class AirconControlCard extends HTMLElement {
 
       this.shadowRoot.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
         const entityId = slider.getAttribute('data-entity');
-        this._sliderDragging[Benchmarks
-        [entityId] = false;
+        this._sliderDragging[entityId] = false;
 
         const newSlider = slider.cloneNode(true);
         slider.parentNode.replaceChild(newSlider, slider);
