@@ -555,21 +555,19 @@ class AirconControlCard extends HTMLElement {
       // Update local value and style on input (live as user drags or clicks)
       slider.addEventListener('input', e => {
         const val = Number(e.target.value);
+        // Update UI locally, e.g.:
+        slider.style.setProperty('--percent', `${val}%`);
         this._localSliderValues[entityId] = val;
-        e.target.style.setProperty('--percent', `${val}%`);
       });
-    
-      // On change (release), send service call and clear local state
+      
       slider.addEventListener('change', e => {
         const val = Number(e.target.value);
-        this._localSliderValues[entityId] = val;
         hass.callService('cover', 'set_cover_position', {
           entity_id: entityId,
-          position: val,
+          position: val
         });
-        // Optionally clear local override after sending update
-        // delete this._localSliderValues[entityId];
       });
+
     });
 
   }
