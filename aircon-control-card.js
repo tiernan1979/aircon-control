@@ -545,7 +545,10 @@ class AirconControlCard extends HTMLElement {
       sliderVal = Math.max(0, Math.min(100, sliderVal));
       const sliderDisplayVal = document.activeElement === slider ? (localVal ?? sliderVal) : sliderVal;
       slider.style.setProperty('--percent', `${sliderDisplayVal}%`);
-      slider.value = sliderDisplayVal;
+
+      if (document.activeElement !== slider) {
+        slider.value = sliderDisplayVal;
+      }
       slider.addEventListener('change', (e) => {
         const val = Number(e.target.value);
         const entityId = e.target.getAttribute('data-entity');
