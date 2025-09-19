@@ -41,7 +41,7 @@ class AirconControlCard extends HTMLElement {
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#b37fed', name: 'Off' },
+      off:      { icon: 'mdi:power',         color: '#D69E5E', name: 'Off' },
       cool:     { icon: 'mdi:snowflake',     color: '#2196F3', name: 'Cool' },
       heat:     { icon: 'mdi:fire',          color: '#F44336', name: 'Heat' },
       fan_only: { icon: 'mdi:fan',           color: '#9E9E9E', name: 'Fan' },
@@ -232,8 +232,8 @@ class AirconControlCard extends HTMLElement {
         }
         
         .temp-circle-container.glow .glow-bottom {
-          opacity: 0.5; /* brighter glow when ON */
-          animation: halfGlowPulse 8s infinite ease-in-out; /* pulsing animation */
+          opacity: 0.5; /* base opacity when ON */
+          animation: halfGlowPulse 12s infinite ease-in-out; /* slower pulse */
         }
         
         .glow-bottom {
@@ -252,19 +252,23 @@ class AirconControlCard extends HTMLElement {
           animation: none; /* no animation by default */
           z-index: 0;
         }
-        
+                
         .temp-circle {
           position: relative;
-          z-index: 1; /* on top of glow */
+          z-index: 1;
           width: 140px;
           height: 140px;
           border-radius: 50%;
-          background: radial-gradient(circle at 30% 30%, #6a0dad, #3b0074 70%), /* deep purple to dark */
-                      radial-gradient(circle at 60% 60%, #ff69b4, transparent 70%), /* pink highlight */
-                      radial-gradient(circle at 80% 20%, #4b0082, transparent 70%); /* indigo swirl */
+          background:
+            /* Base: very dark almost black */
+            radial-gradient(circle at center, #0a0a0a 60%, #000000 100%),
+            /* Purple highlights */
+            radial-gradient(circle at 25% 35%, rgba(138,43,226, 0.6), transparent 70%),
+            radial-gradient(circle at 65% 65%, rgba(147,112,219, 0.5), transparent 80%),
+            radial-gradient(circle at 80% 20%, rgba(186,85,211, 0.4), transparent 70%);
           box-shadow:
-            inset 0 10px 15px rgba(255,255,255,0.3), /* gloss highlight */
-            inset 0 -10px 15px rgba(0,0,0,0.6); /* shadow */
+            inset 0 10px 15px rgba(255, 255, 255, 0.15), /* subtle gloss */
+            inset 0 -10px 15px rgba(0, 0, 0, 0.8); /* deeper shadow */
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -316,10 +320,10 @@ class AirconControlCard extends HTMLElement {
 
         @keyframes halfGlowPulse {
           0%, 100% {
-            opacity: 0.4;
+            opacity: 0.15; /* subtle glow baseline */
           }
           50% {
-            opacity: 1;
+            opacity: 0.5; /* soft max glow */
           }
         }
 
@@ -371,15 +375,19 @@ class AirconControlCard extends HTMLElement {
           height: 28px;
           -webkit-appearance: none;
           appearance: none;
-          border-radius: 5px;
-          background:
-            radial-gradient(circle at center, var(--fill-color) 40%, #333 100%),
-            linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0) 70%);
           border-radius: 12px;
           outline: none;
           transition: background 0.3s ease;
           margin: 0;
-          margin-bottom:-5px;
+          margin-bottom: -5px;
+        
+          background: linear-gradient(
+            to right,
+            var(--fill-color) 0%,
+            var(--fill-color) var(--percent),
+            #333 var(--percent),
+            #333 100%
+          );
         }
 
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
