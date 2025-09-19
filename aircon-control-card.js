@@ -29,11 +29,18 @@ class AirconControlCard extends HTMLElement {
           align-items: center;
           gap: 12px;
           margin-bottom: 12px;
-          background: #1a1a1a;
-          border: 1px solid #333;
-          border-radius: 8px;
-          padding: 8px 12px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+          background:
+            radial-gradient(circle at 60% 60%, rgba(255,105,180, 0.2), transparent 70%),
+            radial-gradient(circle at 30% 30%, rgba(186,85,211, 0.3), transparent 70%),
+            radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
+          border-radius: 50px;
+          padding: 12px;
+          box-shadow:
+            inset 0 10px 15px rgba(255, 255, 255, 0.1),
+            inset 0 -10px 15px rgba(0, 0, 0, 0.8),
+            0 4px 8px rgba(0, 0, 0, 0.5);
+          width: fit-content;
+          margin: 0 auto 12px;
         }
 
         .fan-modes {
@@ -113,7 +120,7 @@ class AirconControlCard extends HTMLElement {
         }
 
         .temp-circle-container.glow .glow-bottom {
-          opacity: 0.6;
+          opacity: 0.8;
           animation: halfGlowPulse 12s infinite ease-in-out;
         }
 
@@ -126,8 +133,8 @@ class AirconControlCard extends HTMLElement {
           height: 70px;
           background: var(--glow-color);
           border-radius: 0 0 70px 70px / 0 0 70px 70px;
-          filter: blur(14px);
-          opacity: 0.2;
+          filter: blur(10px);
+          opacity: 0.4;
           pointer-events: none;
           transition: opacity 0.5s ease;
           animation: none;
@@ -141,8 +148,8 @@ class AirconControlCard extends HTMLElement {
           height: 140px;
           border-radius: 50%;
           background:
-            radial-gradient(circle at 60% 60%, rgba(255,105,180, 0.2), transparent 70%),
-            radial-gradient(circle at 30% 30%, rgba(186,85,211, 0.3), transparent 70%),
+            radial-gradient(circle at 60% 60%, var(--sphere-secondary, rgba(255,105,180, 0.2)), transparent 70%),
+            radial-gradient(circle at 30% 30%, var(--sphere-primary, rgba(186,85,211, 0.3)), transparent 70%),
             radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
           box-shadow:
             inset 0 10px 15px rgba(255, 255, 255, 0.1),
@@ -198,10 +205,10 @@ class AirconControlCard extends HTMLElement {
 
         @keyframes halfGlowPulse {
           0%, 100% {
-            opacity: 0.2;
+            opacity: 0.4;
           }
           50% {
-            opacity: 0.6;
+            opacity: 0.8;
           }
         }
 
@@ -250,7 +257,7 @@ class AirconControlCard extends HTMLElement {
           margin-top: 12px;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 2px;
         }
 
         .room-block {
@@ -270,9 +277,9 @@ class AirconControlCard extends HTMLElement {
           margin-bottom: -10px;
           background: linear-gradient(
             to right,
-            var(--gradient-start) 0%,
-            #000000 var(--percent),
-            #333 var(--percent)
+            #000000 0%,
+            var(--gradient-start) var(--percent),
+            var(--light-gradient-end) var(--percent)
           );
         }
 
@@ -352,6 +359,12 @@ class AirconControlCard extends HTMLElement {
     this.config = config;
     this.showModeNames = config.show_mode_names !== false;
 
+    // Set default sphere colors if not provided
+    const spherePrimary = config.sphere_primary_color || 'rgba(186,85,211, 0.3)';
+    const sphereSecondary = config.sphere_secondary_color || 'rgba(255,105,180, 0.2)';
+    this.shadowRoot.host.style.setProperty('--sphere-primary', spherePrimary);
+    this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
+
     const modeData = {
       off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
       cool: { icon: 'mdi:snowflake', color: '#2196F3', name: 'Cool' },
@@ -427,6 +440,7 @@ class AirconControlCard extends HTMLElement {
       config.rooms.forEach(room => {
         const sliderColor = room.color ?? config.slider_color ?? '#1B86EF';
         const gradientStart = this.shadeColor(sliderColor, -40);
+        const lightGradientEnd = this.shadeColor(sliderColor, 50); // Very light shade for unfilled part
         roomControls += `
           <div class="room-block" data-entity="${room.slider_entity}">
             <input
@@ -435,7 +449,7 @@ class AirconControlCard extends HTMLElement {
               min="0" max="100" step="5"
               value="0"
               data-entity="${room.slider_entity}"
-              style="--gradient-start:${gradientStart}; --percent:0%;"
+              style="--gradient-start:${gradientStart}; --light-gradient-end:${lightGradientEnd}; --percent:0%;"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
