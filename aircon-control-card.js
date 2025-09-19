@@ -130,7 +130,8 @@ class AirconControlCard extends HTMLElement {
         const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
         
         // 🔄 NEW: Get local color override or fallback
-        const sliderColor = room.color ?? cfg.slider_color ?? '#1B86EF';
+        const sliderColor = room.color ?? this.config.slider_color ?? '#1B86EF';
+        const gradientStart = shadeColor(sliderColor, -30); // you'll need a utility like this
         
         // 🎨 Generate a dynamic gradient using sliderColor
         const sliderGradient = `linear-gradient(to right, ${shadeColor(sliderColor, -30)}, ${sliderColor}, ${shadeColor(sliderColor, 20)})`;
@@ -143,7 +144,7 @@ class AirconControlCard extends HTMLElement {
               min="0" max="100" step="1"
               value="${this._localSliderValues[room.slider_entity] ?? sliderVal}"
               data-entity="${room.slider_entity}"
-              style="--percent:35%; --gradient-start:#115fab; --gradient-end:#1B86EF;"
+              style="--percent:${sliderVal}%; --gradient-start:${gradientStart}; --gradient-end:${sliderColor};"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
@@ -391,8 +392,8 @@ class AirconControlCard extends HTMLElement {
         
           background: linear-gradient(
             to right,
-            var(--gradient-start, #115fab) 0%,
-            var(--gradient-end, #1B86EF) var(--percent),
+            #115fab 0%,
+            #1B86EF var(--percent),
             #333 var(--percent),
             #333 100%
           );
