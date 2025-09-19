@@ -3,6 +3,7 @@ class AirconControlCard extends HTMLElement {
   constructor() {
     super();
     this._localTemp = null;
+    this._localSliderValues = {}; // ← NEW: stores temporary slider states
   }
 
   setConfig(config) {
@@ -135,7 +136,7 @@ class AirconControlCard extends HTMLElement {
               type="range"
               class="styled-room-slider no-thumb"
               min="0" max="100" step="1"
-              value="${sliderVal}"
+              value="${this._localSliderValues[room.slider_entity] ?? sliderVal}"
               data-entity="${room.slider_entity}"
               style="--percent:${sliderVal}%; --fill-color:${glowColor}"
             />
@@ -231,9 +232,10 @@ class AirconControlCard extends HTMLElement {
           margin: 0 16px; /* keep spacing for buttons */
         }
         
+
         .temp-circle-container.glow .glow-bottom {
-          opacity: 0.5; /* base opacity when ON */
-          animation: halfGlowPulse 12s infinite ease-in-out; /* slower pulse */
+          opacity: 0.6; /* brighter when ON */
+          animation: glowPulse 12s infinite ease-in-out;
         }
         
         .glow-bottom {
@@ -245,11 +247,11 @@ class AirconControlCard extends HTMLElement {
           height: 70px;
           background: ${glowColor};
           border-radius: 0 0 70px 70px / 0 0 70px 70px;
-          filter: blur(18px);
-          opacity: 0.15; /* subtle glow by default (OFF) */
+          filter: blur(14px); /* reduce blur for visibility */
+          opacity: 0.2; /* increase base glow */
           pointer-events: none;
           transition: opacity 0.5s ease;
-          animation: none; /* no animation by default */
+          animation: none;
           z-index: 0;
         }
                 
@@ -260,15 +262,12 @@ class AirconControlCard extends HTMLElement {
           height: 140px;
           border-radius: 50%;
           background:
-            /* Base: very dark almost black */
-            radial-gradient(circle at center, #0a0a0a 60%, #000000 100%),
-            /* Purple highlights */
-            radial-gradient(circle at 25% 35%, rgba(138,43,226, 0.6), transparent 70%),
-            radial-gradient(circle at 65% 65%, rgba(147,112,219, 0.5), transparent 80%),
-            radial-gradient(circle at 80% 20%, rgba(186,85,211, 0.4), transparent 70%);
+            radial-gradient(circle at 60% 60%, rgba(255,105,180, 0.2), transparent 70%),   /* pink highlight */
+            radial-gradient(circle at 30% 30%, rgba(186,85,211, 0.3), transparent 70%),    /* purple swirl */
+            radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);                  /* black base */
           box-shadow:
-            inset 0 10px 15px rgba(255, 255, 255, 0.15), /* subtle gloss */
-            inset 0 -10px 15px rgba(0, 0, 0, 0.8); /* deeper shadow */
+            inset 0 10px 15px rgba(255, 255, 255, 0.1),
+            inset 0 -10px 15px rgba(0, 0, 0, 0.8);
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -320,10 +319,10 @@ class AirconControlCard extends HTMLElement {
 
         @keyframes halfGlowPulse {
           0%, 100% {
-            opacity: 0.15; /* subtle glow baseline */
+            opacity: 0.2; /* subtle glow baseline */
           }
           50% {
-            opacity: 0.5; /* soft max glow */
+            opacity: 0.6; /* soft max glow */
           }
         }
 
@@ -510,7 +509,11 @@ class AirconControlCard extends HTMLElement {
     this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
       slider.addEventListener('input', (e) => {
         const val = Number(e.target.value);
+        const entityId = e.target.getAttribute('data-entity');
         e.target.style.setProperty('--percent', `${val}%`);
+    
+        // ✅ Store local slider state to prevent flicker
+        this._localSliderValues[entityId] = val;
       });
       slider.addEventListener('change', (e) => {
         const val = Number(e.target.value);
