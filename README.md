@@ -56,8 +56,8 @@ resources:
 | `entity`              | string    | Yes      | The main climate entity ID (e.g., `climate.living_room_ac`)     |
 | `show_mode_names`     | boolean   | No       | Whether to show HVAC mode names alongside icons                 |
 | `rooms`               | array     | No       | List of room slider configurations                              |
-| `sphere_primary_color | string/rgb| No       | The sphere primary color                                       |
-| `sphere_secondary_color | string/rgb| No       | The sphere secondary color                                       |
+| `sphere_primary_color` | string/rgb| No       | The sphere primary color                                       |
+| `sphere_secondary_color` | string/rgb| No       | The sphere secondary color                                       |
 | `slider_color`        | string    | No       | Default hex color for sliders if not specified per room         |
 | &nbsp;&nbsp;`name`          | string    | Yes (per room) | Name displayed for each room slider                             |
 | &nbsp;&nbsp;`slider_entity` | string    | Yes (per room) | Entity ID for the cover or vent slider                          |
