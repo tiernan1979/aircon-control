@@ -30,15 +30,16 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 12px;
           background:
+            linear-gradient(145deg, rgba(255,255,255,0.1), rgba(0,0,0,0.3)),
             radial-gradient(circle at 60% 60%, var(--sphere-secondary, rgba(255,105,180, 0.2)), transparent 70%),
             radial-gradient(circle at 30% 30%, var(--sphere-primary, rgba(186,85,211, 0.3)), transparent 70%),
             radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
           border-radius: 50px;
-          padding: 12px;
+          padding: 10px;
           box-shadow:
-            inset 0 10px 15px rgba(255, 255, 255, 0.1),
-            inset 0 -10px 15px rgba(0, 0, 0, 0.8),
-            0 4px 8px rgba(0, 0, 0, 0.5);
+            inset 0 8px 12px rgba(255, 255, 255, 0.15),
+            inset 0 -8px 12px rgba(0, 0, 0, 0.9),
+            0 3px 6px rgba(0, 0, 0, 0.4);
           width: fit-content;
           margin: 0 auto 12px;
         }
@@ -228,40 +229,36 @@ class AirconControlCard extends HTMLElement {
         }
 
         .sensor-line {
-          font-size: 16px;
-          color: var(--glow-color, #777);
+          font-size: 14px;
+          color: white;
           margin: 12px auto;
           text-align: center;
           display: flex;
           justify-content: center;
           align-items: center;
           gap: 8px;
-          background:
-            radial-gradient(circle at 60% 60%, var(--sphere-secondary, rgba(255,105,180, 0.2)), transparent 70%),
-            radial-gradient(circle at 30% 30%, var(--sphere-primary, rgba(186,85,211, 0.3)), transparent 70%),
-            radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
-          border-radius: 8px;
-          padding: 8px 12px;
+          background: linear-gradient(145deg, var(--slider-base-color-light), var(--slider-base-color-dark));
+          border-radius: 6px;
+          padding: 4px 8px;
           box-shadow:
-            inset 0 4px 8px rgba(255, 255, 255, 0.1),
-            inset 0 -4px 8px rgba(0, 0, 0, 0.8),
-            0 2px 4px rgba(0, 0, 0, 0.3);
+            0 2px 4px rgba(0, 0, 0, 0.3),
+            inset 0 1px 2px rgba(255, 255, 255, 0.1);
           width: fit-content;
         }
 
         .sensor-line ha-icon {
-          font-size: 18px;
-          color: var(--glow-color, #888);
+          font-size: 16px;
+          color: var(--slider-base-color);
         }
 
         .sensor-line ha-icon[icon="mdi:home-outline"] {
-          color: var(--glow-color, #4fc3f7);
+          color: var(--slider-base-color, #4fc3f7);
         }
         .sensor-line ha-icon[icon="mdi:weather-sunny"] {
-          color: var(--glow-color, #ffca28);
+          color: var(--slider-base-color, #ffca28);
         }
         .sensor-line ha-icon[icon="mdi:solar-power"] {
-          color: var(--glow-color, #fbc02d);
+          color: var(--slider-base-color, #fbc02d);
         }
 
         .room-section {
@@ -476,6 +473,12 @@ class AirconControlCard extends HTMLElement {
     this.shadowRoot.host.style.setProperty('--sphere-primary', spherePrimary);
     this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
 
+    // Set slider base color for sensor line
+    const defaultSliderColor = config.slider_color || '#1B86EF';
+    this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
+    this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, 20), 0.2));
+    this.shadowRoot.host.style.setProperty('--slider-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -20), 0.2));
+
     const modeData = {
       off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
       cool: { icon: 'mdi:snowflake', color: '#2196F3', name: 'Cool' },
@@ -522,7 +525,6 @@ class AirconControlCard extends HTMLElement {
       ? this._hass.states[config.entity].attributes.fan_modes
       : fallbackFanModes;
     let fanSpeedButtons = '';
-    const defaultSliderColor = config.slider_color || '#1B86EF';
     const fanColor = this.getComplementaryColor(defaultSliderColor);
     fanModes.forEach(fm => {
       fanSpeedButtons += `
