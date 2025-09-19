@@ -41,7 +41,7 @@ class AirconControlCard extends HTMLElement {
     const currentFanMode = climate.attributes.fan_mode ?? null;
 
     const modeData = {
-      off:      { icon: 'mdi:power',         color: '#D69E5E', name: 'Off' },
+      off:      { icon: 'mdi:power',         color: '#b37fed', name: 'Off' },
       cool:     { icon: 'mdi:snowflake',     color: '#2196F3', name: 'Cool' },
       heat:     { icon: 'mdi:fire',          color: '#F44336', name: 'Heat' },
       fan_only: { icon: 'mdi:fan',           color: '#9E9E9E', name: 'Fan' },
@@ -49,7 +49,7 @@ class AirconControlCard extends HTMLElement {
       auto:     { icon: 'mdi:autorenew',     color: '#FFC107', name: 'Auto' },
     };
 
-    const glowColor = modeData[currentMode]?.color ?? '#16a085';
+    const glowColor = modeData[currentMode]?.color ?? '#b37fed';
 
     const getState = id => {
       const s = hass.states[id];
@@ -153,13 +153,14 @@ class AirconControlCard extends HTMLElement {
       <style>
         :host {
           font-family: 'Roboto', sans-serif;
-          background: #000;
-          color: white;
+          background: var(--card-background-color, #000); /* fallback to black */
+          color: var(--primary-text-color, white);
           border-radius: 12px;
           padding: 16px;
           display: block;
           max-width: 360px;
           user-select: none;
+          transition: background-color 0.3s ease;
         }
 
         .modes, .fan-modes {
@@ -229,22 +230,28 @@ class AirconControlCard extends HTMLElement {
           height: 140px;
           margin: 0 16px; /* keep spacing for buttons */
         }
-
+        
+        .temp-circle-container.glow .glow-bottom {
+          opacity: 0.5; /* brighter glow when ON */
+          animation: halfGlowPulse 8s infinite ease-in-out; /* pulsing animation */
+        }
+        
         .glow-bottom {
           position: absolute;
-          bottom: -20px; /* 10-20px below circle */
+          bottom: -12px;
           left: 50%;
           transform: translateX(-50%);
-          width: 180px;
-          height: 90px;
+          width: 140px;
+          height: 70px;
           background: ${glowColor};
-          border-radius: 0 0 90px 90px / 0 0 90px 90px; /* bottom half ellipse */
-          filter: blur(25px);
-          opacity: 0.6;
-          animation: halfGlowPulse 5s infinite ease-in-out;
-          z-index: 0; /* behind temp-circle */
+          border-radius: 0 0 70px 70px / 0 0 70px 70px;
+          filter: blur(18px);
+          opacity: 0.15; /* subtle glow by default (OFF) */
           pointer-events: none;
-        }        
+          transition: opacity 0.5s ease;
+          animation: none; /* no animation by default */
+          z-index: 0;
+        }
         
         .temp-circle {
           position: relative;
@@ -252,13 +259,12 @@ class AirconControlCard extends HTMLElement {
           width: 140px;
           height: 140px;
           border-radius: 50%;
-          background:
-            radial-gradient(circle at 30% 30%, #bbb, #444 60%, #111 90%),
-            radial-gradient(circle at 80% 20%, rgba(255 255 255 / 0.8), transparent 40%),
-            radial-gradient(circle at 50% 90%, rgba(255 255 255 / 0.2), transparent 70%);
+          background: radial-gradient(circle at 30% 30%, #6a0dad, #3b0074 70%), /* deep purple to dark */
+                      radial-gradient(circle at 60% 60%, #ff69b4, transparent 70%), /* pink highlight */
+                      radial-gradient(circle at 80% 20%, #4b0082, transparent 70%); /* indigo swirl */
           box-shadow:
-            inset -8px -8px 20px rgba(255, 255, 255, 0.3),
-            inset 8px 8px 30px rgba(0, 0, 0, 0.8);
+            inset 0 10px 15px rgba(255,255,255,0.3), /* gloss highlight */
+            inset 0 -10px 15px rgba(0,0,0,0.6); /* shadow */
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -296,6 +302,18 @@ class AirconControlCard extends HTMLElement {
           z-index: 2;
         }
 
+        .temp-circle .reflection {
+          position: absolute;
+          top: 30px;
+          left: 50px;
+          width: 40px;
+          height: 40px;
+          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(6px);
+        }
+
         @keyframes halfGlowPulse {
           0%, 100% {
             opacity: 0.4;
@@ -306,7 +324,7 @@ class AirconControlCard extends HTMLElement {
         }
 
         .temp-value {
-          font-size: 34px; /* +2 */
+          font-size: 30px; /* +2 */
           font-weight: 600;
           color: white;
         }
@@ -354,14 +372,14 @@ class AirconControlCard extends HTMLElement {
           -webkit-appearance: none;
           appearance: none;
           border-radius: 5px;
-          background: linear-gradient(
-            to right,
-            var(--fill-color) var(--percent),
-            #444 var(--percent)
-          );
+          background:
+            radial-gradient(circle at center, var(--fill-color) 40%, #333 100%),
+            linear-gradient(rgba(255,255,255,0.2), rgba(255,255,255,0) 70%);
+          border-radius: 12px;
           outline: none;
           transition: background 0.3s ease;
           margin: 0;
+          margin-bottom:-5px;
         }
 
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
@@ -369,16 +387,18 @@ class AirconControlCard extends HTMLElement {
           appearance: none;
           width: 0;
           height: 0;
+          transition: left 0.3s ease;
         }
 
         .styled-room-slider.no-thumb::-moz-range-thumb {
           width: 0;
           height: 0;
+          transition: left 0.3s ease;
         }
 
         .slider-info {
           position: absolute;
-          top: 2px;
+          top: 3px;
           left: 12px;
           right: 12px;
           height: 22px;
@@ -393,10 +413,17 @@ class AirconControlCard extends HTMLElement {
         .slider-name {
           flex: 1;
         }
-
-        .slider-status, .slider-temp {
+        .slider-status {
           width: 50px;
           text-align: right;
+        }
+
+        .slider-temp {
+          width: 50px;
+          text-align: center; /* center horizontally */
+          display: flex;
+          justify-content: center; /* horizontal centering with flex */
+          align-items: center;     /* vertical centering */
         }
       </style>
 
@@ -408,6 +435,7 @@ class AirconControlCard extends HTMLElement {
         <div class="temp-circle-container ${powerOn ? 'glow' : ''}">
           <div class="glow-bottom"></div>
           <div class="temp-circle">
+            <div class="reflection"></div>          
             <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
             <div class="mode-in-circle">
               <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
