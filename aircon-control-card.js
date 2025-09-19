@@ -591,21 +591,17 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.currentFanMode = currentFanMode;
     }
 
-    // Update temperature display only if temperature or power state has changed
-    const tempKey = `${displayTemp}|${powerOn}`;
+    // Update temperature display and mode in circle only if temperature or power state has changed
+    const tempKey = `${displayTemp}|${powerOn}|${currentMode}`;
     if (this._lastStates.tempKey !== tempKey) {
       const tempCircleContainer = this.shadowRoot.querySelector('.temp-circle-container');
       tempCircleContainer.classList.toggle('glow', powerOn);
       const tempValue = this.shadowRoot.querySelector('.temp-value');
       tempValue.textContent = `${displayTemp.toFixed(1)}°C`;
-      this._lastStates.tempKey = tempKey;
-    }
-
-    // Update mode in circle only if mode has changed
-    if (this._lastStates.currentMode !== currentMode) {
       const modeInCircle = this.shadowRoot.querySelector('.mode-in-circle');
       modeInCircle.querySelector('ha-icon').setAttribute('icon', modeData[currentMode]?.icon || '');
       modeInCircle.querySelector('span').textContent = modeData[currentMode]?.name || '';
+      this._lastStates.tempKey = tempKey;
     }
 
     // Update sliders only if their state or sensor has changed
