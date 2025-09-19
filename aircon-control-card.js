@@ -52,6 +52,15 @@ class AirconControlCard extends HTMLElement {
           margin-bottom: 12px;
         }
 
+        .fan-btn-container {
+          background: linear-gradient(145deg, var(--fan-base-color-light), var(--fan-base-color-dark));
+          border-radius: 6px;
+          padding: 4px 8px;
+          box-shadow:
+            0 2px 4px rgba(0, 0, 0, 0.3),
+            inset 0 1px 2px rgba(255, 255, 255, 0.1);
+        }
+
         .mode-btn, .fan-btn {
           display: flex;
           flex-direction: column;
@@ -94,7 +103,7 @@ class AirconControlCard extends HTMLElement {
         .setpoint-button {
           width: 40px;
           height: 40px;
-          background: linear-gradient(145deg, #333, #222);
+          background: linear-gradient(145deg, var(--button-color), var(--button-color-dark));
           border-radius: 50%;
           font-size: 28px;
           color: white;
@@ -108,9 +117,9 @@ class AirconControlCard extends HTMLElement {
         }
 
         .setpoint-button:hover {
-          background: linear-gradient(145deg, var(--glow-color), #333);
+          background: linear-gradient(145deg, var(--glow-color), var(--button-color-dark));
           box-shadow: 0 0 8px var(--glow-color), 0 2px 4px rgba(0, 0, 0, 0.4);
-          transform: scale(1.05);
+          transform: scale(1.1);
         }
 
         .temp-circle-container {
@@ -341,7 +350,7 @@ class AirconControlCard extends HTMLElement {
       <div class="modes"></div>
       <div class="fan-modes"></div>
       <div class="temp-setpoint-wrapper">
-        <button class="setpoint-button" id="dec-setpoint">−</button>
+        <button class="setpoint-button" id="dec-setpoint" style="--button-color: var(--dec-button-color); --button-color-dark: var(--dec-button-color-dark)">−</button>
         <div class="temp-circle-container">
           <div class="glow-bottom"></div>
           <div class="temp-circle">
@@ -353,7 +362,7 @@ class AirconControlCard extends HTMLElement {
             </div>
           </div>
         </div>
-        <button class="setpoint-button" id="inc-setpoint">+</button>
+        <button class="setpoint-button" id="inc-setpoint" style="--button-color: var(--inc-button-color); --button-color-dark: var(--inc-button-color-dark)">+</button>
       </div>
       <div class="sensor-line"></div>
       <div class="room-section"></div>
@@ -473,11 +482,14 @@ class AirconControlCard extends HTMLElement {
     this.shadowRoot.host.style.setProperty('--sphere-primary', spherePrimary);
     this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
 
-    // Set slider base color for sensor line
+    // Set slider base color for sensor line and fan modes
     const defaultSliderColor = config.slider_color || '#1B86EF';
     this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
     this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, 20), 0.2));
     this.shadowRoot.host.style.setProperty('--slider-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -20), 0.2));
+    this.shadowRoot.host.style.setProperty('--fan-base-color', this.shadeColor(defaultSliderColor, -50));
+    this.shadowRoot.host.style.setProperty('--fan-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, -30), 0.2));
+    this.shadowRoot.host.style.setProperty('--fan-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -70), 0.3));
 
     const modeData = {
       off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
@@ -528,9 +540,11 @@ class AirconControlCard extends HTMLElement {
     const fanColor = this.getComplementaryColor(defaultSliderColor);
     fanModes.forEach(fm => {
       fanSpeedButtons += `
-        <button class="fan-btn" data-fan-mode="${fm}" style="color:#ccc" data-fan-color="${fanColor}">
-          <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
-        </button>`;
+        <div class="fan-btn-container">
+          <button class="fan-btn" data-fan-mode="${fm}" style="color:#ccc" data-fan-color="${fanColor}">
+            <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
+          </button>
+        </div>`;
     });
     fanModesContainer.innerHTML = fanSpeedButtons;
 
@@ -578,7 +592,8 @@ class AirconControlCard extends HTMLElement {
 
       this.shadowRoot.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
         const entityId = slider.getAttribute('data-entity');
-        this._sliderDragging[entityId] = false;
+        this._sliderDragging[Benchmarks
+        [entityId] = false;
 
         const newSlider = slider.cloneNode(true);
         slider.parentNode.replaceChild(newSlider, slider);
@@ -694,6 +709,19 @@ class AirconControlCard extends HTMLElement {
     if (this._lastStates.glowColor !== glowColor) {
       this.shadowRoot.host.style.setProperty('--glow-color', glowColor);
       this._lastStates.glowColor = glowColor;
+    }
+
+    // Set setpoint button colors based on mode
+    const isHeatMode = currentMode === 'heat';
+    const decColor = isHeatMode ? '#F44336' : '#2196F3'; // Red for heat, blue for others
+    const incColor = isHeatMode ? '#2196F3' : '#F44336'; // Blue for heat, red for others
+    if (this._lastStates.decColor !== decColor || this._lastStates.incColor !== incColor) {
+      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color', decColor);
+      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color-dark', this.shadeColor(decColor, -20));
+      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color', incColor);
+      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color-dark', this.shadeColor(incColor, -20));
+      this._lastStates.decColor = decColor;
+      this._lastStates.incColor = incColor;
     }
 
     const getState = id => {
