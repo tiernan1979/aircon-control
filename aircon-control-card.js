@@ -170,7 +170,7 @@ class AirconControlCard extends HTMLElement {
           left: 20px;
           width: 48px;
           height: 28px;
-          background: radial-gradient(circle at 30% 30%, rgba(255 255 255 / 0.8), transparent 70%);
+          background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.8), transparent 70%);
           border-radius: 50%;
           filter: blur(2px);
           pointer-events: none;
@@ -184,7 +184,7 @@ class AirconControlCard extends HTMLElement {
           left: 80px;
           width: 30px;
           height: 15px;
-          background: radial-gradient(circle at 50% 50%, rgba(255 255 255 / 0.4), transparent 70%);
+          background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.4), transparent 70%);
           border-radius: 50%;
           filter: blur(1.5px);
           pointer-events: none;
@@ -228,29 +228,40 @@ class AirconControlCard extends HTMLElement {
         }
 
         .sensor-line {
-          font-size: 14px;
-          color: #777;
-          margin-top: 12px;
+          font-size: 16px;
+          color: var(--glow-color, #777);
+          margin: 12px auto;
           text-align: center;
           display: flex;
           justify-content: center;
           align-items: center;
           gap: 8px;
+          background:
+            radial-gradient(circle at 60% 60%, var(--sphere-secondary, rgba(255,105,180, 0.2)), transparent 70%),
+            radial-gradient(circle at 30% 30%, var(--sphere-primary, rgba(186,85,211, 0.3)), transparent 70%),
+            radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
+          border-radius: 8px;
+          padding: 8px 12px;
+          box-shadow:
+            inset 0 4px 8px rgba(255, 255, 255, 0.1),
+            inset 0 -4px 8px rgba(0, 0, 0, 0.8),
+            0 2px 4px rgba(0, 0, 0, 0.3);
+          width: fit-content;
         }
 
         .sensor-line ha-icon {
-          font-size: 16px;
-          color: #888;
+          font-size: 18px;
+          color: var(--glow-color, #888);
         }
 
         .sensor-line ha-icon[icon="mdi:home-outline"] {
-          color: #4fc3f7;
+          color: var(--glow-color, #4fc3f7);
         }
         .sensor-line ha-icon[icon="mdi:weather-sunny"] {
-          color: #ffca28;
+          color: var(--glow-color, #ffca28);
         }
         .sensor-line ha-icon[icon="mdi:solar-power"] {
-          color: #fbc02d;
+          color: var(--glow-color, #fbc02d);
         }
 
         .room-section {
@@ -277,7 +288,7 @@ class AirconControlCard extends HTMLElement {
           margin-bottom: -10px;
           background: linear-gradient(
             to right,
-            #000000 0%,
+            var(--gradient-dark) 0%,
             var(--gradient-start) var(--percent),
             var(--light-gradient-end) var(--percent)
           );
@@ -426,6 +437,32 @@ class AirconControlCard extends HTMLElement {
     return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
   }
 
+  // Convert hex to rgba with specified opacity
+  hexToRgba(hex, opacity) {
+    const { r, g, b } = this.hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+
+  shadeColor(color, percent) {
+    let R = parseInt(color.substring(1, 3), 16);
+    let G = parseInt(color.substring(3, 5), 16);
+    let B = parseInt(color.substring(5, 7), 16);
+
+    R = parseInt(R * (100 + percent) / 100);
+    G = parseInt(G * (100 + percent) / 100);
+    B = parseInt(B * (100 + percent) / 100);
+
+    R = R < 255 ? R : 255;
+    G = G < 255 ? G : 255;
+    B = B < 255 ? B : 255;
+
+    const RR = R.toString(16).length === 1 ? "0" + R.toString(16) : R.toString(16);
+    const GG = G.toString(16).length === 1 ? "0" + G.toString(16) : G.toString(16);
+    const BB = B.toString(16).length === 1 ? "0" + B.toString(16) : B.toString(16);
+
+    return "#" + RR + GG + BB;
+  }
+
   setConfig(config) {
     if (!config.entity) {
       throw new Error('You need to define an entity');
@@ -515,10 +552,9 @@ class AirconControlCard extends HTMLElement {
       let roomControls = '';
       config.rooms.forEach(room => {
         const sliderColor = room.color ?? config.slider_color ?? '#1B86EF';
-        const { r, g, b } = this.hexToRgb(this.shadeColor(sliderColor, -40));
-        const gradientStart = `rgba(${r}, ${g}, ${b}, 0.3)`; // Low opacity for darker shade
-        const { r: lr, g: lg, b: lb } = this.hexToRgb(this.shadeColor(sliderColor, 50));
-        const lightGradientEnd = `rgba(${lr}, ${lg}, ${lb}, 0.1)`; // Very low opacity for light shade
+        const primaryColor = this.hexToRgba(sliderColor, 0.7); // Primary color, 70% opacity
+        const darkColor = this.hexToRgba(this.shadeColor(sliderColor, -40), 0.3); // Darker shade, 30% opacity
+        const lightColor = this.hexToRgba(this.shadeColor(sliderColor, 50), 0.1); // Light shade, 10% opacity
         roomControls += `
           <div class="room-block" data-entity="${room.slider_entity}">
             <input
@@ -527,7 +563,7 @@ class AirconControlCard extends HTMLElement {
               min="0" max="100" step="5"
               value="0"
               data-entity="${room.slider_entity}"
-              style="--gradient-start:${gradientStart}; --light-gradient-end:${lightGradientEnd}; --percent:0%;"
+              style="--gradient-dark:${darkColor}; --gradient-start:${primaryColor}; --light-gradient-end:${lightColor}; --percent:0%;"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
@@ -782,26 +818,6 @@ class AirconControlCard extends HTMLElement {
         }
       });
     }
-  }
-
-  shadeColor(color, percent) {
-    let R = parseInt(color.substring(1, 3), 16);
-    let G = parseInt(color.substring(3, 5), 16);
-    let B = parseInt(color.substring(5, 7), 16);
-
-    R = parseInt(R * (100 + percent) / 100);
-    G = parseInt(G * (100 + percent) / 100);
-    B = parseInt(B * (100 + percent) / 100);
-
-    R = R < 255 ? R : 255;
-    G = G < 255 ? G : 255;
-    B = B < 255 ? B : 255;
-
-    const RR = R.toString(16).length === 1 ? "0" + R.toString(16) : R.toString(16);
-    const GG = G.toString(16).length === 1 ? "0" + G.toString(16) : G.toString(16);
-    const BB = B.toString(16).length === 1 ? "0" + B.toString(16) : B.toString(16);
-
-    return "#" + RR + GG + BB;
   }
 
   getCardSize() {
