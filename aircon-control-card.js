@@ -2,8 +2,7 @@ class AirconControlCard extends HTMLElement {
   constructor() {
     super();
     this._localTemp = null;
-    this._localSliderValues = {};
-    this._sliderTimers = {};
+    this._localSliderValues = {}; // ← NEW: stores temporary slider states
   }
 
   setConfig(config) {
@@ -12,9 +11,6 @@ class AirconControlCard extends HTMLElement {
     }
     this.config = config;
     this.showModeNames = config.show_mode_names !== false;
-
-    // Add default global room slider color if provided, or fallback
-    this.config.room_slider_color = config.room_slider_color || '#3399ff';  // a deeper blue
   }
 
   set hass(hass) {
@@ -63,7 +59,6 @@ class AirconControlCard extends HTMLElement {
       return s.state;
     };
 
-    // Sensors
     const sensorSolar = cfg.solar_sensor ? getState(cfg.solar_sensor) : null;
     const sensorHouseTemp = cfg.house_temp_sensor ? getState(cfg.house_temp_sensor) : null;
     const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
@@ -95,7 +90,6 @@ class AirconControlCard extends HTMLElement {
       sensorLine = `<div class="sensor-line">${parts.join(' | ')}</div>`;
     }
 
-    // Mode buttons
     let modeButtons = '<div class="modes">';
     Object.entries(modeData).forEach(([modeKey, md]) => {
       const isSel = currentMode === modeKey;
@@ -108,31 +102,25 @@ class AirconControlCard extends HTMLElement {
     });
     modeButtons += '</div>';
 
-    // Fan speed buttons (if used)
     let fanSpeedButtons = '<div class="fan-modes">';
     fanModes.forEach(fm => {
       const sel = (currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase()) ? 'fan-selected' : '';
-      const color = sel ? glowColor : '#ccc';
       fanSpeedButtons += `
-        <button class="fan-btn ${sel}" data-fan-mode="${fm}" style="color:${color}">
+        <button class="fan-btn ${sel}" data-fan-mode="${fm}" style="${ sel ? `color:${glowColor}` : 'color:#ccc' }">
           <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
         </button>`;
     });
     fanSpeedButtons += '</div>';
 
-    // Room sliders + controls
     let roomControls = '';
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
       roomControls += '<div class="room-section">';
       cfg.rooms.forEach(room => {
-        // Defensive checks
-        if (!room.slider_entity) return;
-
         const sliderEnt = hass.states[room.slider_entity];
-        const sensorEnt = room.sensor_entity ? hass.states[room.sensor_entity] : null;
+        const sensorEnt = hass.states[room.sensor_entity];
         let sliderVal = 0;
         if (sliderEnt) {
-          if (sliderEnt.attributes && sliderEnt.attributes.current_position != null) {
+          if (sliderEnt.attributes.current_position != null) {
             sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
           } else if (!isNaN(Number(sliderEnt.state))) {
             sliderVal = Number(sliderEnt.state);
@@ -140,27 +128,31 @@ class AirconControlCard extends HTMLElement {
         }
         sliderVal = Math.max(0, Math.min(100, sliderVal));
         const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
-
-        const entityId = room.slider_entity;
-        const localVal = this._localSliderValues[entityId] != null ? this._localSliderValues[entityId] : sliderVal;
-
-        // Determine slider color: per-room override, or global, or default
-        const sliderColor = room.color || cfg.room_slider_color || '#3399ff';
-
+        
+        // 🔄 NEW: Get local color override or fallback
+        const sliderColor = room.color ?? cfg.slider_color ?? '#1B86EF';
+        
+        // 🎨 Generate a dynamic gradient using sliderColor
+        const sliderGradient = `linear-gradient(to right, ${shadeColor(sliderColor, -30)}, ${sliderColor}, ${shadeColor(sliderColor, 20)})`;
+        
         roomControls += `
           <div class="room-block">
             <input
               type="range"
               class="styled-room-slider no-thumb"
               min="0" max="100" step="1"
-              value="${localVal}"
-              data-entity="${entityId}"
-              style="--percent:${localVal}%; --fill-color:${sliderColor};"
+              value="${this._localSliderValues[room.slider_entity] ?? sliderVal}"
+              data-entity="${room.slider_entity}"
+              style="background: ${sliderGradient};"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-status">${localVal}%</span>
-              <span class="slider-temp">${ sensorVal !== null ? sensorVal.toFixed(1) + '°C' : 'N/A' }</span>
+              ${
+                sensorVal !== null
+                  ? `<span class="slider-temp">${sensorVal.toFixed(1)}°C</span>`
+                  : `<span class="slider-temp"></span>`
+              }
+              <span class="slider-status">${sliderVal}%</span>
             </div>
           </div>`;
       });
@@ -171,7 +163,7 @@ class AirconControlCard extends HTMLElement {
       <style>
         :host {
           font-family: 'Roboto', sans-serif;
-          background: var(--card-background-color, #000);
+          background: var(--card-background-color, #000); /* fallback to black */
           color: var(--primary-text-color, white);
           border-radius: 12px;
           padding: 16px;
@@ -180,94 +172,294 @@ class AirconControlCard extends HTMLElement {
           user-select: none;
           transition: background-color 0.3s ease;
         }
-        .sensor-line {
-          font-size: 14px;
-          color: var(--secondary-text-color, #aaa);
+
+        .modes, .fan-modes {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
           margin-bottom: 12px;
+        }
+
+        .mode-btn, .fan-btn {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 4px;
+          cursor: pointer;
+          background: transparent;
+          border: none;
+          outline: none;
+          color: #ccc;
+          transition: color 0.3s;
+          font-size: 14px; /* increased by +2 */
+        }
+
+        .mode-btn.mode-selected, .fan-btn.fan-selected {
+          color: ${glowColor};
+        }
+
+        .mode-btn ha-icon, .fan-btn ha-icon {
+          font-size: 26px; /* +2 */
+        }
+
+        .mode-name, .fan-name {
+          font-size: 14px; /* +2 */
+        }
+
+        .temp-setpoint-wrapper {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 16px;
+        }
+
+        .setpoint-button {
+          width: 32px;
+          height: 32px;
+          background: #333;
+          border-radius: 50%;
+          font-size: 24px;
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: background-color 0.3s;
+        }
+
+        .setpoint-button:hover {
+          background: ${glowColor};
+        }
+        
+        .temp-circle-container {
+          position: relative;
+          width: 140px;
+          height: 140px;
+          margin: 0 16px; /* keep spacing for buttons */
+        }
+        
+
+        .temp-circle-container.glow .glow-bottom {
+          opacity: 0.6; /* brighter when ON */
+          animation: glowPulse 12s infinite ease-in-out;
+        }
+        
+        .glow-bottom {
+          position: absolute;
+          bottom: -12px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 140px;
+          height: 70px;
+          background: ${glowColor};
+          border-radius: 0 0 70px 70px / 0 0 70px 70px;
+          filter: blur(14px); /* reduce blur for visibility */
+          opacity: 0.2; /* increase base glow */
+          pointer-events: none;
+          transition: opacity 0.5s ease;
+          animation: none;
+          z-index: 0;
+        }
+                
+        .temp-circle {
+          position: relative;
+          z-index: 1;
+          width: 140px;
+          height: 140px;
+          border-radius: 50%;
+          background:
+            radial-gradient(circle at 60% 60%, rgba(255,105,180, 0.2), transparent 70%),   /* pink highlight */
+            radial-gradient(circle at 30% 30%, rgba(186,85,211, 0.3), transparent 70%),    /* purple swirl */
+            radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);                  /* black base */
+          box-shadow:
+            inset 0 10px 15px rgba(255, 255, 255, 0.1),
+            inset 0 -10px 15px rgba(0, 0, 0, 0.8);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          color: white;
+          font-size: 34px;
+          font-weight: 600;
+        }
+        
+        .temp-circle::before {
+          content: '';
+          position: absolute;
+          top: 18px;
+          left: 20px;
+          width: 48px;
+          height: 28px;
+          background: radial-gradient(circle at 30% 30%, rgba(255 255 255 / 0.8), transparent 70%);
+          border-radius: 50%;
+          filter: blur(2px);
+          pointer-events: none;
+          z-index: 2;
+        }
+        
+        .temp-circle::after {
+          content: '';
+          position: absolute;
+          top: 50px;
+          left: 80px;
+          width: 30px;
+          height: 15px;
+          background: radial-gradient(circle at 50% 50%, rgba(255 255 255 / 0.4), transparent 70%);
+          border-radius: 50%;
+          filter: blur(1.5px);
+          pointer-events: none;
+          z-index: 2;
+        }
+
+        .temp-circle .reflection {
+          position: absolute;
+          top: 30px;
+          left: 50px;
+          width: 40px;
+          height: 40px;
+          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 70%);
+          border-radius: 50%;
+          pointer-events: none;
+          filter: blur(6px);
+        }
+
+        @keyframes halfGlowPulse {
+          0%, 100% {
+            opacity: 0.2; /* subtle glow baseline */
+          }
+          50% {
+            opacity: 0.6; /* soft max glow */
+          }
+        }
+
+        .temp-value {
+          font-size: 30px; /* +2 */
+          font-weight: 600;
+          color: white;
+        }
+
+        .mode-in-circle {
+          margin-top: 6px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 18px; /* +2 */
+          color: ${glowColor};
+        }
+
+        .sensor-line {
+          font-size: 14px; /* +2 */
+          color: #777;
+          margin-top: 12px;
+          text-align: center;
           display: flex;
           justify-content: center;
           align-items: center;
           gap: 8px;
         }
+
         .sensor-line ha-icon {
-          font-size: 16px;
-          opacity: 0.8;
-        }
-        /* nicer icon colors */
-        .sensor-line ha-icon[icon*="home"] {
-          color: var(--accent-color, #4caf50);
-        }
-        .sensor-line ha-icon[icon*="weather"] {
-          color: var(--primary-color, #2196F3);
-        }
-        .sensor-line ha-icon[icon*="solar"] {
-          color: var(--warning-color, #ff9800);
+          font-size: 16px; /* +2 */
+          color: #888;
         }
 
         .room-section {
           margin-top: 12px;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 10px;
         }
+
         .room-block {
           position: relative;
           width: 100%;
         }
+
         .styled-room-slider {
           width: 100%;
           height: 28px;
           -webkit-appearance: none;
           appearance: none;
           border-radius: 12px;
-          background: linear-gradient(
-            to right,
-            var(--fill-color, #3399ff) 0%,
-            var(--fill-color, #3399ff) var(--percent),
-            #333 var(--percent),
-            #333 100%
-          );
           outline: none;
-          margin: 0;
           transition: background 0.3s ease;
+          margin: 0;
+          margin-bottom: -5px;
+        
+          background: linear-gradient(to right, #115fab, #1B86EF, #63b3ff);
         }
+
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
           width: 0;
           height: 0;
+          transition: left 0.3s ease;
         }
+
         .styled-room-slider.no-thumb::-moz-range-thumb {
           width: 0;
           height: 0;
+          transition: left 0.3s ease;
         }
+
         .slider-info {
-          margin-top: 4px;
+          position: absolute;
+          top: 3px;
+          left: 12px;
+          right: 12px;
+          height: 22px;
           display: flex;
           justify-content: space-between;
-          font-size: 14px;
-          color: var(--primary-text-color, white);
+          align-items: center;
+          pointer-events: none;
+          font-family: 'Georgia', 'Playfair Display', serif;
+          font-size: 15px; /* +2 */
+          color: white;
         }
+
+        .sensor-line ha-icon[icon="mdi:home-outline"] {
+          color: #4fc3f7; /* light blue */
+        }
+        .sensor-line ha-icon[icon="mdi:weather-sunny"] {
+          color: #ffca28; /* sunny yellow */
+        }
+        .sensor-line ha-icon[icon="mdi:solar-power"] {
+          color: #fbc02d; /* golden */
+        }
+        
         .slider-name {
           flex: 1;
         }
+
         .slider-status {
           width: 50px;
           text-align: right;
         }
+
+
+
         .slider-temp {
           width: 50px;
-          text-align: center;
+          text-align: center; /* center horizontally */
+          display: flex;
+          justify-content: center; /* horizontal centering with flex */
+          align-items: center;     /* vertical centering */
         }
       </style>
+
+      ${modeButtons}
+      ${fanSpeedButtons}
 
       <div class="temp-setpoint-wrapper">
         <button class="setpoint-button" id="dec-setpoint">−</button>
         <div class="temp-circle-container ${powerOn ? 'glow' : ''}">
-          <!-- your glow bottom etc here, circle, mode etc -->
           <div class="glow-bottom"></div>
           <div class="temp-circle">
-            <div class="reflection"></div>
+            <div class="reflection"></div>          
             <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
             <div class="mode-in-circle">
               <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
@@ -275,37 +467,16 @@ class AirconControlCard extends HTMLElement {
             </div>
           </div>
         </div>
+
         <button class="setpoint-button" id="inc-setpoint">+</button>
       </div>
 
       ${sensorLine}
-      ${modeButtons}
-      ${fanSpeedButtons}
+
       ${roomControls}
     `;
 
-    // Event listeners for setpoint buttons (increase / decrease) etc
-    this.querySelector('#dec-setpoint')?.addEventListener('click', () => {
-      let nt = this._localTemp ?? displayTemp;
-      nt = nt - 1;
-      if (nt < minTemp) nt = minTemp;
-      this._localTemp = nt;
-      hass.callService('climate', 'set_temperature', {
-        entity_id: cfg.entity,
-        temperature: nt
-      });
-    });
-    this.querySelector('#inc-setpoint')?.addEventListener('click', () => {
-      let nt = this._localTemp ?? displayTemp;
-      nt = nt + 1;
-      if (nt > maxTemp) nt = maxTemp;
-      this._localTemp = nt;
-      hass.callService('climate', 'set_temperature', {
-        entity_id: cfg.entity,
-        temperature: nt
-      });
-    });
-
+    // Event listeners (unchanged)
     this.querySelectorAll('.mode-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const mode = btn.getAttribute('data-mode');
@@ -330,22 +501,43 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
+    this.querySelector('#dec-setpoint').addEventListener('click', () => {
+      let nt = this._localTemp ?? displayTemp;
+      nt = nt - 1;
+      if (nt < minTemp) nt = minTemp;
+      this._localTemp = nt;
+      hass.callService('climate', 'set_temperature', {
+        entity_id: cfg.entity,
+        temperature: nt
+      });
+    });
+
+    this.querySelector('#inc-setpoint').addEventListener('click', () => {
+      let nt = this._localTemp ?? displayTemp;
+      nt = nt + 1;
+      if (nt > maxTemp) nt = maxTemp;
+      this._localTemp = nt;
+      hass.callService('climate', 'set_temperature', {
+        entity_id: cfg.entity,
+        temperature: nt
+      });
+    });
+    
     this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
-      const entityId = slider.getAttribute('data-entity');
       slider.addEventListener('input', (e) => {
         const val = Number(e.target.value);
-        slider.style.setProperty('--percent', `${val}%`);
+        const entityId = e.target.getAttribute('data-entity');
         this._localSliderValues[entityId] = val;
-
-        if (this._sliderTimers[entityId]) {
-          clearTimeout(this._sliderTimers[entityId]);
-        }
-        this._sliderTimers[entityId] = setTimeout(() => {
-          hass.callService('cover', 'set_cover_position', {
-            entity_id: entityId,
-            position: val
-          });
-        }, 500); // delay to reduce flicker
+      });
+    
+      slider.addEventListener('change', (e) => {
+        const val = Number(e.target.value);
+        const entityId = e.target.getAttribute('data-entity');
+        this._localSliderValues[entityId] = val;
+        hass.callService('cover', 'set_cover_position', {
+          entity_id: entityId,
+          position: val
+        });
       });
     });
   }
@@ -354,7 +546,25 @@ class AirconControlCard extends HTMLElement {
     return 6;
   }
 }
+function shadeColor(color, percent) {
+  let R = parseInt(color.substring(1,3),16);
+  let G = parseInt(color.substring(3,5),16);
+  let B = parseInt(color.substring(5,7),16);
 
-if (!customElements.get('aircon-control-card')) {
-  customElements.define('aircon-control-card', AirconControlCard);
+  R = parseInt(R * (100 + percent) / 100);
+  G = parseInt(G * (100 + percent) / 100);
+  B = parseInt(B * (100 + percent) / 100);
+
+  R = (R<255)?R:255;  
+  G = (G<255)?G:255;  
+  B = (B<255)?B:255;  
+
+  const RR = (R.toString(16).length==1)?"0"+R.toString(16):R.toString(16);
+  const GG = (G.toString(16).length==1)?"0"+G.toString(16):G.toString(16);
+  const BB = (B.toString(16).length==1)?"0"+B.toString(16):B.toString(16);
+
+  return "#"+RR+GG+BB;
 }
+
+
+customElements.define('aircon-control-card', AirconControlCard);
