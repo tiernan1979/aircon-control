@@ -1,4 +1,3 @@
-
 class AirconControlCard extends HTMLElement {
   constructor() {
     super();
@@ -301,273 +300,216 @@ class AirconControlCard extends HTMLElement {
           content: '';
           position: absolute;
           top: 18px;
-          left: 20px;
-          width: 48px;
-          height: 28px;
-          background: radial-gradient(circle at 30% 30%, rgba(255 255 255 / 0.8), transparent 70%);
+          left: 18px;
+          right: 18px;
+          bottom: 18px;
           border-radius: 50%;
-          filter: blur(2px);
+          box-shadow: inset 0 0 20px 3px rgba(255, 105, 180, 0.5);
           pointer-events: none;
-          z-index: 2;
-        }
-        
-        .temp-circle::after {
-          content: '';
-          position: absolute;
-          top: 50px;
-          left: 80px;
-          width: 30px;
-          height: 15px;
-          background: radial-gradient(circle at 50% 50%, rgba(255 255 255 / 0.4), transparent 70%);
-          border-radius: 50%;
-          filter: blur(1.5px);
-          pointer-events: none;
-          z-index: 2;
+          z-index: -1;
         }
 
-        .temp-circle .reflection {
-          position: absolute;
-          top: 30px;
-          left: 50px;
-          width: 40px;
-          height: 40px;
-          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 70%);
-          border-radius: 50%;
-          pointer-events: none;
-          filter: blur(6px);
-        }
-
-        @keyframes halfGlowPulse {
-          0%, 100% {
-            opacity: 0.2; /* subtle glow baseline */
-          }
-          50% {
-            opacity: 0.6; /* soft max glow */
-          }
-        }
-
-        .temp-value {
-          font-size: 24px; /* +2 */
-          font-weight: 600;
-          color: white;
-        }
-
-        .mode-in-circle {
-          margin-top: 6px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 18px; /* +2 */
-          color: ${glowColor};
+        .temp-unit {
+          font-size: 16px;
+          margin-left: 4px;
+          color: #d1d1d1;
+          font-weight: 400;
         }
 
         .sensor-line {
-          font-size: 14px; /* +2 */
-          color:  var(--secondary-text-color);
-          margin-top: 12px;
           text-align: center;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 8px;
+          margin-bottom: 12px;
+          font-size: 12px;
+          color: #bbb;
         }
 
-        .sensor-line ha-icon {
-          font-size: 16px; /* +2 */
-          opacity: 0.8;
-          vertical-align: middle;
-         }
-         
-        .sensor-line ha-icon[icon*="home"] {
-          color: var(--accent-color, #4caf50); /* Green for indoor/home */
-        }
-        
-        .sensor-line ha-icon[icon*="weather"] {
-          color: var(--primary-color, #2196f3); /* Blue for outdoor/weather */
-        }
-        
-        .sensor-line ha-icon[icon*="solar"] {
-          color: var(--warning-color, #ff9800); /* Orange/yellow for solar */
-        }
-        
         .room-section {
           margin-top: 12px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
         }
 
         .room-block {
-          position: relative;
-          width: 100%;
+          margin-bottom: 12px;
         }
 
         .styled-room-slider {
           width: 100%;
-          height: 28px;
           -webkit-appearance: none;
           appearance: none;
-          border-radius: 12px;
-          outline: none;
-          transition: background 0.3s ease;
-          margin: 0;
-          margin-bottom: -5px;
-        
+          height: 8px;
+          border-radius: 8px;
           background: linear-gradient(
-            to right,
-            var(--fill-color) 0%,
-            var(--fill-color) var(--percent),
-            #333 var(--percent),
-            #333 100%
+            90deg,
+            var(--fill-color, #66ccff) var(--percent, 50%),
+            #444 var(--percent, 50%)
           );
+          outline: none;
+          cursor: pointer;
+          transition: background 0.3s ease;
         }
 
-        .styled-room-slider.no-thumb::-webkit-slider-thumb {
+        .styled-room-slider::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
-          width: 0;
-          height: 0;
-          transition: left 0.3s ease;
+          width: 14px;
+          height: 14px;
+          background: var(--fill-color, #66ccff);
+          cursor: pointer;
+          border-radius: 50%;
+          border: 2px solid white;
+          transition: background 0.3s ease;
+          position: relative;
+          z-index: 1;
         }
 
-        .styled-room-slider.no-thumb::-moz-range-thumb {
-          width: 0;
-          height: 0;
-          transition: left 0.3s ease;
+        .styled-room-slider::-moz-range-thumb {
+          width: 14px;
+          height: 14px;
+          background: var(--fill-color, #66ccff);
+          border-radius: 50%;
+          border: 2px solid white;
+          cursor: pointer;
+          transition: background 0.3s ease;
+          position: relative;
+          z-index: 1;
+        }
+
+        .no-thumb::-webkit-slider-thumb {
+          display: none;
         }
 
         .slider-info {
-          position: absolute;
-          top: 3px;
-          left: 12px;
-          right: 12px;
-          height: 22px;
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          pointer-events: none;
-          font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-          font-size: 15px;
-          color: white;
+          font-size: 14px;
+          color: #ccc;
+          margin-top: 4px;
+          font-weight: 500;
         }
 
         .slider-name {
-          flex: 1;
-        }
-        .slider-status {
-          width: 50px;
-          text-align: right;
-          font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-          font-size: 15px;
+          font-weight: 600;
         }
 
-      .slider-temp {
-        flex: 1; /* Take available space */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        text-align: center;
-        font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
-        font-size: 15px;
-      }
+        @keyframes glowPulse {
+          0%, 100% {
+            opacity: 0.4;
+          }
+          50% {
+            opacity: 0.8;
+          }
+        }
       </style>
 
-      ${modeButtons}
-      ${fanSpeedButtons}
-
+      ${sensorLine}
+      
       <div class="temp-setpoint-wrapper">
-        <button class="setpoint-button" id="dec-setpoint">−</button>
+        <button class="setpoint-button" id="temp-dec">−</button>
         <div class="temp-circle-container ${powerOn ? 'glow' : ''}">
           <div class="glow-bottom"></div>
-          <div class="temp-circle">
-            <div class="reflection"></div>          
-            <div class="temp-value">${displayTemp.toFixed(1)}°C</div>
-            <div class="mode-in-circle">
-              <ha-icon icon="${modeData[currentMode]?.icon}"></ha-icon>
-              <span>${modeData[currentMode]?.name}</span>
-            </div>
-          </div>
+          <div class="temp-circle">${displayTemp.toFixed(1)}<span class="temp-unit">°C</span></div>
         </div>
-
-        <button class="setpoint-button" id="inc-setpoint">+</button>
+        <button class="setpoint-button" id="temp-inc">+</button>
       </div>
-
-      ${sensorLine}
-
+      
+      ${modeButtons}
+      ${fanSpeedButtons}
       ${roomControls}
     `;
 
-    // Event listeners (unchanged)
-    this.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const mode = btn.getAttribute('data-mode');
-        if (mode === 'off') {
-          hass.callService('climate', 'turn_off', { entity_id: cfg.entity });
-        } else {
-          hass.callService('climate', 'set_hvac_mode', {
-            entity_id: cfg.entity,
-            hvac_mode: mode
-          });
-        }
-      });
+    this.querySelector('#temp-dec').onclick = () => this._changeTemp(-0.5);
+    this.querySelector('#temp-inc').onclick = () => this._changeTemp(0.5);
+
+    this.shadowRoot?.querySelectorAll('.mode-btn').forEach(button => {
+      button.onclick = () => this._setMode(button.dataset.mode);
     });
 
-    this.querySelectorAll('.fan-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const fm = btn.getAttribute('data-fan-mode');
-        hass.callService('climate', 'set_fan_mode', {
-          entity_id: cfg.entity,
-          fan_mode: fm
-        });
-      });
+    this.querySelectorAll('.mode-btn').forEach(button => {
+      button.onclick = () => this._setMode(button.dataset.mode);
     });
 
-    this.querySelector('#dec-setpoint').addEventListener('click', () => {
-      let nt = this._localTemp ?? displayTemp;
-      nt = nt - 1;
-      if (nt < minTemp) nt = minTemp;
-      this._localTemp = nt;
-      hass.callService('climate', 'set_temperature', {
-        entity_id: cfg.entity,
-        temperature: nt
-      });
+    this.querySelectorAll('.fan-btn').forEach(button => {
+      button.onclick = () => this._setFanMode(button.dataset.fanMode);
     });
 
-    this.querySelector('#inc-setpoint').addEventListener('click', () => {
-      let nt = this._localTemp ?? displayTemp;
-      nt = nt + 1;
-      if (nt > maxTemp) nt = maxTemp;
-      this._localTemp = nt;
-      hass.callService('climate', 'set_temperature', {
-        entity_id: cfg.entity,
-        temperature: nt
-      });
-    });
+    this.querySelectorAll('.styled-room-slider').forEach(slider => {
+      slider.oninput = e => {
+        const ent = e.target.dataset.entity;
+        const val = parseInt(e.target.value);
+        if (!ent) return;
 
-    this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
-      slider.addEventListener('input', (e) => {
-        const val = Number(e.target.value);
-        const entityId = e.target.getAttribute('data-entity');
+        this._localSliderValues[ent] = val;
+        this._sliderUpdateTimestamps[ent] = Date.now();
+
+        // Update slider UI
         e.target.style.setProperty('--percent', `${val}%`);
-    
-        // ✅ Store local slider state to prevent flicker
-        this._localSliderValues[entityId] = val;
-        this._sliderUpdateTimestamps[entityId] = Date.now();
-      });
-      slider.addEventListener('change', (e) => {
-        const val = Number(e.target.value);
-        const entityId = e.target.getAttribute('data-entity');
-        hass.callService('cover', 'set_cover_position', {
-          entity_id: entityId,
-          position: val
+
+        const statusSpan = e.target.nextElementSibling?.querySelector('.slider-status');
+        if (statusSpan) statusSpan.textContent = `${val}%`;
+      };
+
+      slider.onchange = e => {
+        const ent = e.target.dataset.entity;
+        const val = parseInt(e.target.value);
+        if (!ent) return;
+        this._localSliderValues[ent] = val;
+        this._sliderUpdateTimestamps[ent] = Date.now();
+
+        this._callService('climate', 'set_hvac_mode', {
+          entity_id: this.config.entity,
+          hvac_mode: 'auto',
         });
-      });
+
+        this._callService('cover', 'set_cover_position', {
+          entity_id: ent,
+          position: val,
+        });
+      };
     });
   }
 
-  getCardSize() {
-    return 6;
+  _callService(domain, service, data) {
+    this._hass.callService(domain, service, data);
+  }
+
+  _changeTemp(delta) {
+    if (!this._hass) return;
+
+    const climate = this._hass.states[this.config.entity];
+    if (!climate) return;
+
+    let curTemp = climate.attributes.temperature ?? climate.attributes.current_temperature;
+    if (curTemp === undefined) return;
+
+    let newTemp = Number(curTemp) + delta;
+    const minTemp = climate.attributes.min_temp ?? 16;
+    const maxTemp = climate.attributes.max_temp ?? 30;
+    newTemp = Math.min(Math.max(newTemp, minTemp), maxTemp);
+
+    this._localTemp = newTemp;
+
+    this._callService('climate', 'set_temperature', {
+      entity_id: this.config.entity,
+      temperature: newTemp,
+    });
+  }
+
+  _setMode(mode) {
+    if (!this._hass) return;
+    this._callService('climate', 'set_hvac_mode', {
+      entity_id: this.config.entity,
+      hvac_mode: mode,
+    });
+  }
+
+  _setFanMode(fanMode) {
+    if (!this._hass) return;
+    this._callService('climate', 'set_fan_mode', {
+      entity_id: this.config.entity,
+      fan_mode: fanMode,
+    });
   }
 }
 
-customElements.define('aircon-control-card', AirconControlCard);
+if (!customElements.get('aircon-control-card')) {
+  customElements.define('aircon-control-card', AirconControlCard);
+}
