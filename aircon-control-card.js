@@ -8,7 +8,7 @@ class AirconControlCard extends HTMLElement {
     this._setpointListenersAdded = false;
     this.attachShadow({ mode: 'open' });
 
-    // Initialize HTML structure once
+    // Initialize HTML structure once, including modes, fan-modes, and room-section
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -329,17 +329,18 @@ class AirconControlCard extends HTMLElement {
     const hass = this._hass;
     if (!hass) return;
 
+    const modeData = {
+      off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
+      cool: { icon: 'mdi:snowflake', color: '#2196F3', name: 'Cool' },
+      heat: { icon: 'mdi:fire', color: '#F44336', name: 'Heat' },
+      fan_only: { icon: 'mdi:fan', color: '#9E9E9E', name: 'Fan' },
+      dry: { icon: 'mdi:water-percent', color: '#009688', name: 'Dry' },
+      auto: { icon: 'mdi:autorenew', color: '#FFC107', name: 'Auto' },
+    };
+
+    // Initialize mode buttons
     const modesContainer = this.shadowRoot.querySelector('.modes');
     if (!modesContainer.innerHTML) {
-      const modeData = {
-        off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
-        cool: { icon: 'mdi:snowflake', color: '#2196F3', name: 'Cool' },
-        heat: { icon: 'mdi:fire', color: '#F44336', name: 'Heat' },
-        fan_only: { icon: 'mdi:fan', color: '#9E9E9E', name: 'Fan' },
-        dry: { icon: 'mdi:water-percent', color: '#009688', name: 'Dry' },
-        auto: { icon: 'mdi:autorenew', color: '#FFC107', name: 'Auto' },
-      };
-
       let modeButtons = '';
       Object.entries(modeData).forEach(([modeKey, md]) => {
         modeButtons += `
@@ -365,6 +366,7 @@ class AirconControlCard extends HTMLElement {
       });
     }
 
+    // Initialize fan mode buttons
     const fanModesContainer = this.shadowRoot.querySelector('.fan-modes');
     if (!fanModesContainer.innerHTML && hass.states[config.entity]?.attributes.fan_modes?.length > 0) {
       const fanModes = hass.states[config.entity].attributes.fan_modes;
@@ -388,6 +390,7 @@ class AirconControlCard extends HTMLElement {
       });
     }
 
+    // Initialize room controls
     const roomSection = this.shadowRoot.querySelector('.room-section');
     if (config.rooms && Array.isArray(config.rooms) && !roomSection.innerHTML) {
       let roomControls = '';
@@ -395,7 +398,7 @@ class AirconControlCard extends HTMLElement {
         const sliderColor = room.color ?? config.slider_color ?? '#1B86EF';
         const gradientStart = this.shadeColor(sliderColor, -40);
         roomControls += `
-          <div class="room-block">
+          <div class="room-block" data-entity="${room.slider_entity}">
             <input
               type="range"
               class="styled-room-slider no-thumb"
@@ -591,7 +594,7 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.currentFanMode = currentFanMode;
     }
 
-    // Update temperature display and mode in circle only if temperature or power state has changed
+    // Update temperature display and mode in circle only if temperature, power state, or mode has changed
     const tempKey = `${displayTemp}|${powerOn}|${currentMode}`;
     if (this._lastStates.tempKey !== tempKey) {
       const tempCircleContainer = this.shadowRoot.querySelector('.temp-circle-container');
@@ -604,40 +607,43 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.tempKey = tempKey;
     }
 
-    // Update sliders only if their state or sensor has changed
-    this.shadowRoot.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
-      const entityId = slider.getAttribute('data-entity');
-      const sliderEnt = hass.states[entityId];
-      const room = cfg.rooms?.find(r => r.slider_entity === entityId);
-      const sensorEnt = room ? hass.states[room.sensor_entity] : null;
-      let sliderVal = 0;
-      if (sliderEnt) {
-        if (sliderEnt.attributes.current_position != null) {
-          sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
-        } else if (!isNaN(Number(sliderEnt.state))) {
-          sliderVal = Number(sliderEnt.state);
+    // Update room sliders only if their state or sensor has changed
+    if (cfg.rooms && Array.isArray(cfg.rooms)) {
+      this.shadowRoot.querySelectorAll('.room-block').forEach(block => {
+        const entityId = block.getAttribute('data-entity');
+        const slider = block.querySelector('.styled-room-slider');
+        const sliderEnt = hass.states[entityId];
+        const room = cfg.rooms.find(r => r.slider_entity === entityId);
+        const sensorEnt = room ? hass.states[room.sensor_entity] : null;
+        let sliderVal = 0;
+        if (sliderEnt) {
+          if (sliderEnt.attributes.current_position != null) {
+            sliderVal = parseInt(sliderEnt.attributes.current_position) || 0;
+          } else if (!isNaN(Number(sliderEnt.state))) {
+            sliderVal = Number(sliderEnt.state);
+          }
         }
-      }
-      sliderVal = Math.max(0, Math.min(100, sliderVal));
-      const sensorVal = sensorEnt && !isNaN(Number(sensorEnt.state)) ? Number(sensorEnt.state) : null;
+        sliderVal = Math.max(0, Math.min(100, sliderVal));
+        const sensorVal = sensorEnt && !isNaN(Number(sensorEnt.state)) ? Number(sensorEnt.state) : null;
 
-      const sliderKey = `${sliderVal}|${sensorVal}`;
-      if (this._lastStates[entityId] !== sliderKey && !this._sliderDragging[entityId]) {
-        const localVal = this._localSliderValues[entityId];
-        const displayVal = localVal !== undefined ? localVal : sliderVal;
-        slider.value = displayVal;
-        slider.style.setProperty('--percent', `${displayVal}%`);
-        const sliderStatus = slider.parentElement.querySelector('.slider-status');
-        if (sliderStatus) {
-          sliderStatus.textContent = `${displayVal}%`;
+        const sliderKey = `${sliderVal}|${sensorVal}`;
+        if (this._lastStates[entityId] !== sliderKey && !this._sliderDragging[entityId]) {
+          const localVal = this._localSliderValues[entityId];
+          const displayVal = localVal !== undefined ? localVal : sliderVal;
+          slider.value = displayVal;
+          slider.style.setProperty('--percent', `${displayVal}%`);
+          const sliderStatus = block.querySelector('.slider-status');
+          if (sliderStatus) {
+            sliderStatus.textContent = `${displayVal}%`;
+          }
+          const sliderTemp = block.querySelector('.slider-temp');
+          if (sliderTemp) {
+            sliderTemp.textContent = sensorVal !== null ? `${sensorVal.toFixed(1)}°C` : '';
+          }
+          this._lastStates[entityId] = sliderKey;
         }
-        const sliderTemp = slider.parentElement.querySelector('.slider-temp');
-        if (sliderTemp) {
-          sliderTemp.textContent = sensorVal !== null ? `${sensorVal.toFixed(1)}°C` : '';
-        }
-        this._lastStates[entityId] = sliderKey;
-      }
-    });
+      });
+    }
   }
 
   shadeColor(color, percent) {
