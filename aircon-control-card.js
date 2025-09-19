@@ -555,10 +555,17 @@ class AirconControlCard extends HTMLElement {
       // Update local value and style on input (live as user drags or clicks)
       slider.addEventListener('input', e => {
         const val = Number(e.target.value);
-        // Update UI locally, e.g.:
-        slider.style.setProperty('--percent', `${val}%`);
+        const entityId = e.target.getAttribute('data-entity');
         this._localSliderValues[entityId] = val;
+        e.target.style.setProperty('--percent', `${val}%`);
+        
+        // Update the displayed numeric value
+        const sliderValueDisplay = e.target.parentElement.querySelector('.slider-status');
+        if (sliderValueDisplay) {
+          sliderValueDisplay.textContent = `${val}%`;
+        }
       });
+
       
       slider.addEventListener('change', e => {
         const val = Number(e.target.value);
