@@ -532,8 +532,9 @@ class AirconControlCard extends HTMLElement {
     
     this.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
       const entityId = slider.getAttribute('data-entity');
+      // Track drag state
       this._sliderDragging = this._sliderDragging || {};
-      this._sliderDragging[entityId] = this._sliderDragging[entityId] || false;
+      this._sliderDragging[entityId] = false;
     
       const sliderEnt = hass.states[entityId];
       let sliderVal = 0;
@@ -550,15 +551,19 @@ class AirconControlCard extends HTMLElement {
         this._sliderDragging[entityId] = true;
       });
     
-      slider.addEventListener('pointerup', () => {
-        this._sliderDragging[entityId] = false;
-      });
+      // Listen for pointerup/cancel on the whole document to reliably detect drag end
+      const endDrag = () => {
+        if (this._sliderDragging[entityId]) {
+          this._sliderDragging[entityId] = false;
+          // Optionally trigger a refresh or re-render here if needed
+        }
+      };
     
-      slider.addEventListener('pointercancel', () => {
-        this._sliderDragging[entityId] = false;
-      });
+      window.addEventListener('pointerup', endDrag);
+      window.addEventListener('pointercancel', endDrag);
+      window.addEventListener('pointerleave', endDrag);
     
-      // ONLY update slider value if NOT currently dragging!
+      // Only update slider if not dragging
       if (!this._sliderDragging[entityId]) {
         const localVal = this._localSliderValues[entityId];
         const displayVal = (localVal !== undefined) ? localVal : sliderVal;
@@ -589,8 +594,6 @@ class AirconControlCard extends HTMLElement {
           entity_id: entityId,
           position: val,
         });
-        // Optionally clear local override after sending update
-        // delete this._localSliderValues[entityId];
       });
     });
 
