@@ -163,8 +163,6 @@ class AirconControlCard extends HTMLElement {
       roomControls += '</div>';
     }
 
-  }
-
     this.innerHTML = `
       <style>
         :host {
