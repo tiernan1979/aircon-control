@@ -591,7 +591,7 @@ class AirconControlCard extends HTMLElement {
       // On change (release), send service call and clear local state
       slider.addEventListener('change', e => {
         const val = Number(e.target.value);
-        this._localSliderValues[entityId] = val;
+        this._localSliderValues[entityId] = undefined;
         hass.callService('cover', 'set_cover_position', {
           entity_id: entityId,
           position: val,
