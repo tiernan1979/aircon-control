@@ -23,7 +23,20 @@ class AirconControlCard extends HTMLElement {
           transition: background-color 0.3s ease;
         }
 
-        .modes, .fan-modes {
+        .modes {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
+          margin-bottom: 12px;
+          background: #1a1a1a;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 8px 12px;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .fan-modes {
           display: flex;
           justify-content: center;
           align-items: center;
@@ -42,8 +55,12 @@ class AirconControlCard extends HTMLElement {
           border: none;
           outline: none;
           color: #ccc;
-          transition: color 0.3s;
+          transition: color 0.3s, transform 0.2s;
           font-size: 14px;
+        }
+
+        .mode-btn:hover, .fan-btn:hover {
+          transform: scale(1.1);
         }
 
         .mode-btn.mode-selected, .fan-btn.fan-selected {
@@ -67,21 +84,25 @@ class AirconControlCard extends HTMLElement {
         }
 
         .setpoint-button {
-          width: 32px;
-          height: 32px;
-          background: #333;
+          width: 40px;
+          height: 40px;
+          background: linear-gradient(145deg, #333, #222);
           border-radius: 50%;
-          font-size: 24px;
+          font-size: 28px;
           color: white;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          transition: background-color 0.3s;
+          border: 1px solid #444;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.1);
+          transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
         }
 
         .setpoint-button:hover {
-          background: var(--glow-color);
+          background: linear-gradient(145deg, var(--glow-color), #333);
+          box-shadow: 0 0 8px var(--glow-color), 0 2px 4px rgba(0, 0, 0, 0.4);
+          transform: scale(1.05);
         }
 
         .temp-circle-container {
@@ -250,7 +271,7 @@ class AirconControlCard extends HTMLElement {
           background: linear-gradient(
             to right,
             var(--gradient-start) 0%,
-            var(--gradient-end) var(--percent),
+            #000000 var(--percent),
             #333 var(--percent)
           );
         }
@@ -411,10 +432,10 @@ class AirconControlCard extends HTMLElement {
             <input
               type="range"
               class="styled-room-slider no-thumb"
-              min="0" max="100" step="1"
+              min="0" max="100" step="5"
               value="0"
               data-entity="${room.slider_entity}"
-              style="--gradient-start:${gradientStart}; --gradient-end:${sliderColor}; --percent:0%;"
+              style="--gradient-start:${gradientStart}; --percent:0%;"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
@@ -644,6 +665,8 @@ class AirconControlCard extends HTMLElement {
             sliderVal = Number(sliderEnt.state);
           }
         }
+        // Round sliderVal to nearest multiple of 5 to match step
+        sliderVal = Math.round(sliderVal / 5) * 5;
         sliderVal = Math.max(0, Math.min(100, sliderVal));
         const sensorVal = sensorEnt && !isNaN(Number(sensorEnt.state)) ? Number(sensorEnt.state) : null;
 
