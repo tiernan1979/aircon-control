@@ -388,7 +388,7 @@ class AirconControlCard extends HTMLElement {
           outline: none;
           transition: background 0.3s ease;
           margin: 0;
-          margin-bottom: -5px;
+          margin-bottom: -10px;
         
           background: linear-gradient(
             to right,
@@ -415,7 +415,7 @@ class AirconControlCard extends HTMLElement {
 
         .slider-info {
           position: absolute;
-          top: 4px;
+          top: 6px;
           left: 12px;
           right: 12px;
           height: 22px;
@@ -440,6 +440,7 @@ class AirconControlCard extends HTMLElement {
         
         .slider-name {
           flex: 1;
+          width: 200px;
         }
 
         .slider-status {
@@ -447,14 +448,13 @@ class AirconControlCard extends HTMLElement {
           text-align: right;
         }
 
-
-
         .slider-temp {
           width: 50px;
           text-align: center; /* center horizontally */
           display: flex;
           justify-content: center; /* horizontal centering with flex */
           align-items: center;     /* vertical centering */
+          
         }
       </style>
 
