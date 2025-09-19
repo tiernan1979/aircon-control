@@ -381,7 +381,7 @@ class AirconControlCard extends HTMLElement {
 
         .styled-room-slider {
           width: 100%;
-          height: 28px;
+          height: 34px;
           -webkit-appearance: none;
           appearance: none;
           border-radius: 12px;
@@ -415,7 +415,7 @@ class AirconControlCard extends HTMLElement {
 
         .slider-info {
           position: absolute;
-          top: 3px;
+          top: 4px;
           left: 12px;
           right: 12px;
           height: 22px;
