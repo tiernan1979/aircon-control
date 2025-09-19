@@ -4,13 +4,17 @@ class AirconControlCard extends HTMLElement {
     super();
     this._localTemp = null;
     this._localSliderValues = {}; // ← NEW: stores temporary slider states
+    this._sliderUpdateTimestamps = {}; // ← NEW: remember when each slider was updated
   }
 
   setConfig(config) {
     if (!config.entity) {
       throw new Error('You need to define an entity');
     }
-    this.config = config;
+    this.config = {
+      default_slider_color: '#66ccff', // fallback light blue
+      config
+    };
     this.showModeNames = config.show_mode_names !== false;
   }
 
@@ -129,16 +133,22 @@ class AirconControlCard extends HTMLElement {
         }
         sliderVal = Math.max(0, Math.min(100, sliderVal));
         const sensorVal = (sensorEnt && !isNaN(Number(sensorEnt.state))) ? Number(sensorEnt.state) : null;
-
+        const localVal = this._localSliderValues[room.slider_entity];
+        const recentUpdate = this._sliderUpdateTimestamps[room.slider_entity];
+        const now = Date.now();
+        const showLocal = localVal !== undefined && recentUpdate && now - recentUpdate < 2000; // 2s threshold
+        const effectiveVal = showLocal ? localVal : sliderVal;
+        const sliderColor = room.slider_color || cfg.default_slider_color || '#66ccff';
+        
         roomControls += `
           <div class="room-block">
             <input
               type="range"
               class="styled-room-slider no-thumb"
               min="0" max="100" step="1"
-              value="${this._localSliderValues[room.slider_entity] ?? sliderVal}"
+              value="${effectiveVal}"
               data-entity="${room.slider_entity}"
-              style="--percent:${sliderVal}%; --fill-color:${glowColor}"
+              style="--percent:${sliderVal}%; --fill-color:${sliderColor}"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
@@ -327,7 +337,7 @@ class AirconControlCard extends HTMLElement {
         }
 
         .temp-value {
-          font-size: 30px; /* +2 */
+          font-size: 24px; /* +2 */
           font-weight: 600;
           color: white;
         }
@@ -343,7 +353,7 @@ class AirconControlCard extends HTMLElement {
 
         .sensor-line {
           font-size: 14px; /* +2 */
-          color: #777;
+          color:  var(--secondary-text-color);
           margin-top: 12px;
           text-align: center;
           display: flex;
@@ -354,9 +364,22 @@ class AirconControlCard extends HTMLElement {
 
         .sensor-line ha-icon {
           font-size: 16px; /* +2 */
-          color: #888;
+          opacity: 0.8;
+          vertical-align: middle;
+         }
+         
+        .sensor-line ha-icon[icon*="home"] {
+          color: var(--accent-color, #4caf50); /* Green for indoor/home */
         }
-
+        
+        .sensor-line ha-icon[icon*="weather"] {
+          color: var(--primary-color, #2196f3); /* Blue for outdoor/weather */
+        }
+        
+        .sensor-line ha-icon[icon*="solar"] {
+          color: var(--warning-color, #ff9800); /* Orange/yellow for solar */
+        }
+        
         .room-section {
           margin-top: 12px;
           display: flex;
@@ -413,7 +436,8 @@ class AirconControlCard extends HTMLElement {
           justify-content: space-between;
           align-items: center;
           pointer-events: none;
-          font-size: 15px; /* +2 */
+          font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+          font-size: 15px;
           color: white;
         }
 
@@ -423,15 +447,19 @@ class AirconControlCard extends HTMLElement {
         .slider-status {
           width: 50px;
           text-align: right;
+          font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+          font-size: 15px;
         }
 
-        .slider-temp {
-          width: 50px;
-          text-align: center; /* center horizontally */
-          display: flex;
-          justify-content: center; /* horizontal centering with flex */
-          align-items: center;     /* vertical centering */
-        }
+      .slider-temp {
+        flex: 1; /* Take available space */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+        font-size: 15px;
+      }
       </style>
 
       ${modeButtons}
@@ -514,6 +542,7 @@ class AirconControlCard extends HTMLElement {
     
         // ✅ Store local slider state to prevent flicker
         this._localSliderValues[entityId] = val;
+        this._sliderUpdateTimestamps[entityId] = Date.now();
       });
       slider.addEventListener('change', (e) => {
         const val = Number(e.target.value);
