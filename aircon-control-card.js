@@ -1,36 +1,15 @@
-import { LitElement, html, css } from 'https://unpkg.com/lit-element@3.0.0/lit-element.js?module';
-import { fireEvent } from 'https://unpkg.com/custom-card-helpers@1.9.0/dist/index.js?module';
 
-// Editor dependencies (Lit and helpers)
-const LitElement = Object.getPrototypeOf(
-  customElements.get("ha-card")
-);
-const html = LitElement.prototype.html;
-const css = LitElement.prototype.css;
-const fireEvent = (node, type, detail, options) => {
-  options = options || {};
-  detail = detail === null || detail === undefined ? {} : detail;
-  const event = new Event(type, {
-    bubbles: options.bubbles === undefined ? true : options.bubbles,
-    cancelable: Boolean(options.cancelable),
-    composed: options.composed === undefined ? true : options.composed,
-  });
-  event.detail = detail;
-  node.dispatchEvent(event);
-  return event;
-}
-
-// Original AirconControlCard class (unchanged except for syntax fix)
 class AirconControlCard extends HTMLElement {
   constructor() {
     super();
     this._localTemp = null;
     this._localSliderValues = {};
     this._sliderDragging = {};
-    this._lastStates = {};
+    this._lastStates = {}; // Track last known states to detect changes
     this._setpointListenersAdded = false;
     this.attachShadow({ mode: 'open' });
 
+    // Initialize HTML structure once
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -391,6 +370,7 @@ class AirconControlCard extends HTMLElement {
     `;
   }
 
+  // Convert hex to RGB
   hexToRgb(hex) {
     let cleanHex = hex.replace(/^#/, '');
     if (cleanHex.length === 3) {
@@ -402,6 +382,7 @@ class AirconControlCard extends HTMLElement {
     return { r, g, b };
   }
 
+  // Convert RGB to HSL
   rgbToHsl(r, g, b) {
     r /= 255;
     g /= 255;
@@ -411,7 +392,7 @@ class AirconControlCard extends HTMLElement {
     let h, s, l = (max + min) / 2;
 
     if (max === min) {
-      h = s = 0;
+      h = s = 0; // achromatic
     } else {
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -425,6 +406,7 @@ class AirconControlCard extends HTMLElement {
     return { h: h * 360, s: s * 100, l: l * 100 };
   }
 
+  // Convert HSL to RGB
   hslToRgb(h, s, l) {
     s /= 100;
     l /= 100;
@@ -452,15 +434,17 @@ class AirconControlCard extends HTMLElement {
     return { r, g, b };
   }
 
+  // Get complementary color
   getComplementaryColor(hex) {
     const { r, g, b } = this.hexToRgb(hex);
     const { h, s, l } = this.rgbToHsl(r, g, b);
-    const compH = (h + 180) % 360;
-    const compL = Math.min(l + 10, 80);
+    const compH = (h + 180) % 360; // Shift hue by 180 degrees
+    const compL = Math.min(l + 10, 80); // Slightly adjust lightness
     const { r: newR, g: newG, b: newB } = this.hslToRgb(compH, s, compL);
     return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
   }
 
+  // Convert hex to rgba with specified opacity
   hexToRgba(hex, opacity) {
     const { r, g, b } = this.hexToRgb(hex);
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
@@ -493,11 +477,13 @@ class AirconControlCard extends HTMLElement {
     this.config = config;
     this.showModeNames = config.show_mode_names !== false;
 
+    // Set default sphere colors if not provided
     const spherePrimary = config.sphere_primary_color || 'rgba(186,85,211, 0.3)';
     const sphereSecondary = config.sphere_secondary_color || 'rgba(255,105,180, 0.2)';
     this.shadowRoot.host.style.setProperty('--sphere-primary', spherePrimary);
     this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
 
+    // Set slider base color for sensor line and fan modes
     const defaultSliderColor = config.slider_color || '#1B86EF';
     this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
     this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, 20), 0.2));
@@ -515,6 +501,7 @@ class AirconControlCard extends HTMLElement {
       auto: { icon: 'mdi:autorenew', color: '#FFC107', name: 'Auto' },
     };
 
+    // Initialize HVAC mode buttons
     const modesContainer = this.shadowRoot.querySelector('.modes');
     let modeButtons = '';
     Object.entries(modeData).forEach(([modeKey, md]) => {
@@ -544,6 +531,7 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
+    // Initialize fan mode buttons with fallback
     const fanModesContainer = this.shadowRoot.querySelector('.fan-modes');
     const fallbackFanModes = ['low', 'medium', 'high', 'auto'];
     const fanModes = this._hass && this._hass.states[config.entity]?.attributes.fan_modes?.length > 0
@@ -575,14 +563,15 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
+    // Initialize room controls
     const roomSection = this.shadowRoot.querySelector('.room-section');
     if (config.rooms && Array.isArray(config.rooms)) {
       let roomControls = '';
       config.rooms.forEach(room => {
         const sliderColor = room.color ?? config.slider_color ?? '#1B86EF';
-        const primaryColor = this.hexToRgba(sliderColor, 0.7);
-        const darkColor = this.hexToRgba(this.shadeColor(sliderColor, -40), 0.3);
-        const lightColor = this.hexToRgba(this.shadeColor(sliderColor, 50), 0.1);
+        const primaryColor = this.hexToRgba(sliderColor, 0.7); // Primary color, 70% opacity
+        const darkColor = this.hexToRgba(this.shadeColor(sliderColor, -40), 0.3); // Darker shade, 30% opacity
+        const lightColor = this.hexToRgba(this.shadeColor(sliderColor, 50), 0.1); // Light shade, 10% opacity
         roomControls += `
           <div class="room-block" data-entity="${room.slider_entity}">
             <input
@@ -646,6 +635,7 @@ class AirconControlCard extends HTMLElement {
       roomSection.innerHTML = '';
     }
 
+    // Add setpoint button listeners
     if (!this._setpointListenersAdded) {
       const decBtn = this.shadowRoot.querySelector('#dec-setpoint');
       decBtn.addEventListener('click', () => {
@@ -721,9 +711,10 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.glowColor = glowColor;
     }
 
+    // Set setpoint button colors based on mode
     const isHeatMode = currentMode === 'heat';
-    const decColor = isHeatMode ? '#F44336' : '#2196F3';
-    const incColor = isHeatMode ? '#2196F3' : '#F44336';
+    const decColor = isHeatMode ? '#F44336' : '#2196F3'; // Red for heat, blue for others
+    const incColor = isHeatMode ? '#2196F3' : '#F44336'; // Blue for heat, red for others
     if (this._lastStates.decColor !== decColor || this._lastStates.incColor !== incColor) {
       this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color', decColor);
       this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color-dark', this.shadeColor(decColor, -20));
@@ -741,6 +732,7 @@ class AirconControlCard extends HTMLElement {
       return s.state;
     };
 
+    // Update sensor line only if sensors have changed
     const sensorSolar = cfg.solar_sensor ? getState(cfg.solar_sensor) : null;
     const sensorHouseTemp = cfg.house_temp_sensor ? getState(cfg.house_temp_sensor) : null;
     const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
@@ -778,6 +770,7 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.sensorKey = sensorKey;
     }
 
+    // Update mode buttons only if mode has changed
     if (this._lastStates.currentMode !== currentMode) {
       this.shadowRoot.querySelectorAll('.mode-btn').forEach(btn => {
         const modeKey = btn.getAttribute('data-mode');
@@ -790,6 +783,7 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.currentMode = currentMode;
     }
 
+    // Update fan mode buttons only if fan mode has changed
     if (this._lastStates.currentFanMode !== currentFanMode) {
       const defaultSliderColor = cfg.slider_color || '#1B86EF';
       const fanColor = this.getComplementaryColor(defaultSliderColor);
@@ -802,6 +796,7 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.currentFanMode = currentFanMode;
     }
 
+    // Update temperature display and mode in circle only if temperature, power state, or mode has changed
     const tempKey = `${displayTemp}|${powerOn}|${currentMode}`;
     if (this._lastStates.tempKey !== tempKey) {
       const tempCircleContainer = this.shadowRoot.querySelector('.temp-circle-container');
@@ -814,6 +809,7 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.tempKey = tempKey;
     }
 
+    // Update room sliders only if their state or sensor has changed
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
       this.shadowRoot.querySelectorAll('.room-block').forEach(block => {
         const entityId = block.getAttribute('data-entity');
@@ -829,6 +825,7 @@ class AirconControlCard extends HTMLElement {
             sliderVal = Number(sliderEnt.state);
           }
         }
+        // Round sliderVal to nearest multiple of 5 to match step
         sliderVal = Math.round(sliderVal / 5) * 5;
         sliderVal = Math.max(0, Math.min(100, sliderVal));
         const sensorVal = sensorEnt && !isNaN(Number(sensorEnt.state)) ? Number(sensorEnt.state) : null;
@@ -858,247 +855,4 @@ class AirconControlCard extends HTMLElement {
   }
 }
 
-// Editor class for visual configuration
-class AirconControlCardEditor extends LitElement {
-  static get properties() {
-    return {
-      hass: { type: Object },
-      config: { type: Object },
-    };
-  }
-
-  setConfig(config) {
-    this.config = {
-      type: 'custom:aircon-control-card',
-      entity: '',
-      slider_color: '#1B86EF',
-      sphere_primary_color: 'rgba(186,85,211,0.3)',
-      sphere_secondary_color: 'rgba(255,105,180,0.2)',
-      show_mode_names: true,
-      solar_sensor: '',
-      house_temp_sensor: '',
-      house_humidity_sensor: '',
-      outside_temp_sensor: '',
-      outside_humidity_sensor: '',
-      rooms: [],
-      ...config,
-    };
-    this.requestUpdate();
-  }
-
-  render() {
-    if (!this.hass) {
-      return html``;
-    }
-
-    return html`
-      <div class="card-config">
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${this.config.entity}
-          .configValue=${'entity'}
-          .includeDomains=${['climate']}
-          @value-changed=${this._valueChanged}
-          label="Climate Entity (Required)"
-          allow-custom-entity
-        ></ha-entity-picker>
-
-        <ha-textfield
-          label="Slider Color (Hex, e.g., #1B86EF)"
-          .value=${this.config.slider_color || '#1B86EF'}
-          .configValue=${'slider_color'}
-          @input=${this._valueChanged}
-          type="text"
-          pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
-        ></ha-textfield>
-
-        <ha-textfield
-          label="Sphere Primary Color (RGBA, e.g., rgba(186,85,211,0.3))"
-          .value=${this.config.sphere_primary_color || 'rgba(186,85,211,0.3)'}
-          .configValue=${'sphere_primary_color'}
-          @input=${this._valueChanged}
-          type="text"
-        ></ha-textfield>
-
-        <ha-textfield
-          label="Sphere Secondary Color (RGBA, e.g., rgba(255,105,180,0.2))"
-          .value=${this.config.sphere_secondary_color || 'rgba(255,105,180,0.2)'}
-          .configValue=${'sphere_secondary_color'}
-          @input=${this._valueChanged}
-          type="text"
-        ></ha-textfield>
-
-        <ha-checkbox
-          .checked=${this.config.show_mode_names !== false}
-          .configValue=${'show_mode_names'}
-          @change=${this._valueChanged}
-        >Show Mode Names</ha-checkbox>
-
-        <h3>Sensor Entities</h3>
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${this.config.solar_sensor}
-          .configValue=${'solar_sensor'}
-          .includeDomains=${['sensor']}
-          @value-changed=${this._valueChanged}
-          label="Solar Sensor (Optional)"
-          allow-custom-entity
-        ></ha-entity-picker>
-
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${this.config.house_temp_sensor}
-          .configValue=${'house_temp_sensor'}
-          .includeDomains=${['sensor']}
-          @value-changed=${this._valueChanged}
-          label="House Temperature Sensor (Optional)"
-          allow-custom-entity
-        ></ha-entity-picker>
-
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${this.config.house_humidity_sensor}
-          .configValue=${'house_humidity_sensor'}
-          .includeDomains=${['sensor']}
-          @value-changed=${this._valueChanged}
-          label="House Humidity Sensor (Optional)"
-          allow-custom-entity
-        ></ha-entity-picker>
-
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${this.config.outside_temp_sensor}
-          .configValue=${'outside_temp_sensor'}
-          .includeDomains=${['sensor']}
-          @value-changed=${this._valueChanged}
-          label="Outside Temperature Sensor (Optional)"
-          allow-custom-entity
-        ></ha-entity-picker>
-
-        <ha-entity-picker
-          .hass=${this.hass}
-          .value=${this.config.outside_humidity_sensor}
-          .configValue=${'outside_humidity_sensor'}
-          .includeDomains=${['sensor']}
-          @value-changed=${this._valueChanged}
-          label="Outside Humidity Sensor (Optional)"
-          allow-custom-entity
-        ></ha-entity-picker>
-
-        <h3>Rooms</h3>
-        ${(this.config.rooms || []).map((room, index) => html`
-          <div class="room-config">
-            <ha-textfield
-              label="Room Name"
-              .value=${room.name || ''}
-              .configValue=${`rooms.${index}.name`}
-              @input=${this._valueChanged}
-              type="text"
-            ></ha-textfield>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${room.slider_entity || ''}
-              .configValue=${`rooms.${index}.slider_entity`}
-              .includeDomains=${['cover']}
-              @value-changed=${this._valueChanged}
-              label="Slider Entity (Cover)"
-              allow-custom-entity
-            ></ha-entity-picker>
-            <ha-entity-picker
-              .hass=${this.hass}
-              .value=${room.sensor_entity || ''}
-              .configValue=${`rooms.${index}.sensor_entity`}
-              .includeDomains=${['sensor']}
-              @value-changed=${this._valueChanged}
-              label="Sensor Entity (Optional)"
-              allow-custom-entity
-            ></ha-entity-picker>
-            <ha-textfield
-              label="Room Color (Hex, e.g., #FF5733)"
-              .value=${room.color || ''}
-              .configValue=${`rooms.${index}.color`}
-              @input=${this._valueChanged}
-              type="text"
-              pattern="^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$"
-            ></ha-textfield>
-            <ha-icon
-              icon="mdi:delete"
-              @click=${() => this._removeRoom(index)}
-              style="cursor: pointer;"
-            ></ha-icon>
-          </div>
-        `)}
-        <mwc-button @click=${this._addRoom}>Add Room</mwc-button>
-      </div>
-    `;
-  }
-
-  _valueChanged(ev) {
-    if (!this.config || !this.hass) return;
-    const target = ev.target;
-    const value = target.type === 'checkbox' ? target.checked : target.value;
-    const configValue = target.configValue;
-
-    if (!configValue) return;
-
-    let newConfig = { ...this.config };
-
-    if (configValue.startsWith('rooms.')) {
-      const [_, index, key] = configValue.split('.');
-      newConfig.rooms = [...(newConfig.rooms || [])];
-      newConfig.rooms[index] = { ...newConfig.rooms[index], [key]: value };
-    } else {
-      newConfig[configValue] = value;
-    }
-
-    fireEvent(this, 'config-changed', { config: newConfig });
-  }
-
-  _addRoom() {
-    const newConfig = {
-      ...this.config,
-      rooms: [...(this.config.rooms || []), { name: '', slider_entity: '', sensor_entity: '', color: '' }],
-    };
-    fireEvent(this, 'config-changed', { config: newConfig });
-  }
-
-  _removeRoom(index) {
-    const newConfig = {
-      ...this.config,
-      rooms: this.config.rooms.filter((_, i) => i !== index),
-    };
-    fireEvent(this, 'config-changed', { config: newConfig });
-  }
-
-  static get styles() {
-    return css`
-      .card-config {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-      .room-config {
-        border: 1px solid var(--divider-color, #e0e0e0);
-        padding: 12px;
-        border-radius: 4px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      ha-textfield,
-      ha-entity-picker,
-      ha-checkbox {
-        width: 100%;
-      }
-      mwc-button {
-        align-self: flex-start;
-      }
-      ha-icon {
-        color: var(--error-color, #db4437);
-      }
-    `;
-  }
-}
-
 customElements.define('aircon-control-card', AirconControlCard);
-customElements.define('aircon-control-card-editor', AirconControlCardEditor);
