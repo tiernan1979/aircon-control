@@ -498,9 +498,9 @@ class AirconControlCard extends HTMLElement {
     this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
     this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, 20), 0.2));
     this.shadowRoot.host.style.setProperty('--slider-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -20), 0.2));
-    this.shadowRoot.host.style.setProperty('--fan-base-color', this.shadeColor(defaultSliderColor, -50));
-    this.shadowRoot.host.style.setProperty('--fan-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, -30), 0.2));
-    this.shadowRoot.host.style.setProperty('--fan-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -70), 0.3));
+    this.shadowRoot.host.style.setProperty('--fan-base-color', this.shadeColor(defaultSliderColor, -25));
+    this.shadowRoot.host.style.setProperty('--fan-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, -10), 0.2));
+    this.shadowRoot.host.style.setProperty('--fan-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -30), 0.3));
 
     const modeData = {
       off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
@@ -801,7 +801,9 @@ class AirconControlCard extends HTMLElement {
         const fm = btn.getAttribute('data-fan-mode');
         const sel = currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase();
         btn.classList.toggle('fan-selected', sel);
-        btn.style.backgroundColor = sel ? fanColor : '#ccc';
+        btn.style.Color = sel ? fanColor : '#ccc';
+        btn.style.boxShadow = sel ? 'inset 2px 2px 5px rgba(0, 0, 0, 0.3)' : '2px 2px 5px rgba(0, 0, 0, 0.2)';
+        btn.style.transform = sel ? 'translateY(2px)' : 'translateY(0)';
       });
       this._lastStates.currentFanMode = currentFanMode;
     }
