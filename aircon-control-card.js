@@ -796,13 +796,11 @@ class AirconControlCard extends HTMLElement {
     // Update fan mode buttons only if fan mode has changed
     if (this._lastStates.currentFanMode !== currentFanMode) {
       const defaultSliderColor = cfg.slider_color || '#1B86EF';
-      const fanColor = this.getComplementaryColor(defaultSliderColor);
-      const buttonColor = this.getComplementaryColor(fanColor);
+      const buttonColor = defaultSliderColor;
       this.shadowRoot.querySelectorAll('.fan-btn').forEach(btn => {
         const fm = btn.getAttribute('data-fan-mode');
         const sel = currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase();
         btn.classList.toggle('fan-selected', sel);
-        btn.style.Color = sel ? fanColor : '#ccc';
         const container = btn.closest('.fan-btn-container');
         if (container) {0
           container.style.background = sel 
