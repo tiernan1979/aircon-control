@@ -1,13 +1,16 @@
+
+
 class AirconControlCard extends HTMLElement {
   constructor() {
     super();
     this._localTemp = null;
     this._localSliderValues = {};
     this._sliderDragging = {};
-    this._lastStates = {};
+    this._lastStates = {}; // Track last known states to detect changes
     this._setpointListenersAdded = false;
     this.attachShadow({ mode: 'open' });
 
+    // Initialize HTML structure once
     this.shadowRoot.innerHTML = `
       <style>
         :host {
@@ -20,6 +23,7 @@ class AirconControlCard extends HTMLElement {
           user-select: none;
           transition: background-color 0.3s ease;
         }
+
         .modes {
           display: flex;
           justify-content: center;
@@ -40,6 +44,7 @@ class AirconControlCard extends HTMLElement {
           width: fit-content;
           margin: 0 auto 12px;
         }
+
         .fan-modes {
           display: flex;
           justify-content: center;
@@ -47,6 +52,7 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 12px;
         }
+
         .fan-btn-container {
           background: linear-gradient(145deg, var(--fan-base-color-light), var(--fan-base-color-dark));
           border-radius: 6px;
@@ -55,6 +61,7 @@ class AirconControlCard extends HTMLElement {
             0 2px 4px rgba(0, 0, 0, 0.3),
             inset 0 1px 2px rgba(255, 255, 255, 0.1);
         }
+
         .mode-btn, .fan-btn {
           display: flex;
           flex-direction: column;
@@ -69,19 +76,24 @@ class AirconControlCard extends HTMLElement {
           transition: color 0.3s, transform 0.2s;
           font-size: 14px;
         }
+
         .mode-btn:hover, .fan-btn:hover {
           transform: scale(1.1);
         }
+
         .mode-btn.mode-selected, .fan-btn.fan-selected {
           color: var(--glow-color);
         }
+
         .mode-btn ha-icon, .fan-btn ha-icon {
           font-size: 26px;
         }
+
         .mode-name, .fan-name {
           font-size: 14px;
-          color: var(--text-color, white);
+          color: var(--text-color, white);         
         }
+
         .temp-setpoint-wrapper {
           display: flex;
           justify-content: center;
@@ -89,6 +101,7 @@ class AirconControlCard extends HTMLElement {
           gap: 12px;
           margin-bottom: 16px;
         }
+
         .setpoint-button {
           width: 40px;
           height: 40px;
@@ -104,21 +117,25 @@ class AirconControlCard extends HTMLElement {
           box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.1);
           transition: background 0.3s, box-shadow 0.3s, transform 0.2s;
         }
+
         .setpoint-button:hover {
           background: linear-gradient(145deg, var(--glow-color), var(--button-color-dark));
           box-shadow: 0 0 8px var(--glow-color), 0 2px 4px rgba(0, 0, 0, 0.4);
           transform: scale(1.1);
         }
+
         .temp-circle-container {
           position: relative;
           width: 140px;
           height: 140px;
           margin: 0 16px;
         }
+
         .temp-circle-container.glow .glow-bottom {
           opacity: 0.8;
           animation: halfGlowPulse 12s infinite ease-in-out;
         }
+
         .glow-bottom {
           position: absolute;
           bottom: -12px;
@@ -135,6 +152,7 @@ class AirconControlCard extends HTMLElement {
           animation: none;
           z-index: 0;
         }
+
         .temp-circle {
           position: relative;
           z-index: 1;
@@ -155,6 +173,7 @@ class AirconControlCard extends HTMLElement {
           font-size: 34px;
           font-weight: 600;
         }
+
         .temp-circle::before {
           content: '';
           position: absolute;
@@ -168,6 +187,7 @@ class AirconControlCard extends HTMLElement {
           pointer-events: none;
           z-index: 2;
         }
+
         .temp-circle::after {
           content: '';
           position: absolute;
@@ -181,6 +201,7 @@ class AirconControlCard extends HTMLElement {
           pointer-events: none;
           z-index: 2;
         }
+
         .temp-circle .reflection {
           position: absolute;
           top: 30px;
@@ -192,14 +213,21 @@ class AirconControlCard extends HTMLElement {
           pointer-events: none;
           filter: blur(6px);
         }
+
         @keyframes halfGlowPulse {
-          0%, 100% { opacity: 0.4; }
-          50% { opacity: 0.8; }
+          0%, 100% {
+            opacity: 0.4;
+          }
+          50% {
+            opacity: 0.8;
+          }
         }
+
         .temp-value {
           font-size: 30px;
           font-weight: 600;
         }
+
         .mode-in-circle {
           margin-top: 6px;
           display: flex;
@@ -207,6 +235,7 @@ class AirconControlCard extends HTMLElement {
           gap: 6px;
           font-size: 18px;
         }
+
         .sensor-line {
           font-size: 14px;
           margin: 12px auto;
@@ -223,22 +252,33 @@ class AirconControlCard extends HTMLElement {
             inset 0 1px 2px rgba(255, 255, 255, 0.1);
           width: fit-content;
         }
+
         .sensor-line ha-icon {
           font-size: 16px;
         }
-        .sensor-line ha-icon[icon="mdi:home-outline"] { color: #4fc3f7; }
-        .sensor-line ha-icon[icon="mdi:weather-sunny"] { color: #ffca28; }
-        .sensor-line ha-icon[icon="mdi:solar-power"] { color: #fbc02d; }
+
+        .sensor-line ha-icon[icon="mdi:home-outline"] {
+          color: #4fc3f7;
+        }
+        .sensor-line ha-icon[icon="mdi:weather-sunny"] {
+          color: #ffca28;
+        }
+        .sensor-line ha-icon[icon="mdi:solar-power"] {
+          color: #fbc02d;
+        }
+
         .room-section {
           margin-top: 12px;
           display: flex;
           flex-direction: column;
           gap: 2px;
         }
+
         .room-block {
           position: relative;
           width: 100%;
         }
+
         .styled-room-slider {
           width: 100%;
           height: 34px;
@@ -256,6 +296,7 @@ class AirconControlCard extends HTMLElement {
             var(--light-gradient-end) var(--percent)
           );
         }
+
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
           -webkit-appearance: none;
           appearance: none;
@@ -263,11 +304,13 @@ class AirconControlCard extends HTMLElement {
           height: 0;
           transition: left 0.3s ease;
         }
+
         .styled-room-slider.no-thumb::-moz-range-thumb {
           width: 0;
           height: 0;
           transition: left 0.3s ease;
         }
+
         .slider-info {
           position: absolute;
           top: 6px;
@@ -282,9 +325,24 @@ class AirconControlCard extends HTMLElement {
           font-size: 15px;
           color: var(--text-color, white);
         }
-        .slider-name { flex: 1; width: 200px; }
-        .slider-status { width: 50px; text-align: right; }
-        .slider-temp { width: 50px; text-align: center; display: flex; justify-content: center; align-items: center; }
+
+        .slider-name {
+          flex: 1;
+          width: 200px;
+        }
+
+        .slider-status {
+          width: 50px;
+          text-align: right;
+        }
+
+        .slider-temp {
+          width: 50px;
+          text-align: center;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
       </style>
       <div class="modes"></div>
       <div class="fan-modes"></div>
@@ -307,31 +365,8 @@ class AirconControlCard extends HTMLElement {
       <div class="room-section"></div>
     `;
   }
-
-  getEntityIds() {
-    const { entity, entities, rooms, rooms_only } = this.config;
-    if (rooms_only) {
-      // Rooms-only mode: Use rooms to derive climate entities
-      if (!rooms || !Array.isArray(rooms) || rooms.length === 0) {
-        return [];
-      }
-      return rooms.map(room => {
-        // Derive entity ID from room name (e.g., "Living Room" -> "climate.living_room_ac")
-        const roomId = typeof room === 'string' ? room : room.name;
-        return `climate.${roomId.toLowerCase().replace(/\s+/g, '_')}_ac`;
-      }).filter(eid => this._hass?.states[eid]); // Only include available entities
-    } else {
-      // Default mode: Use entity, entities, or auto-discover climate.aircon*
-      if (entity) {
-        return [entity];
-      }
-      if (entities && Array.isArray(entities) && entities.length > 0) {
-        return entities;
-      }
-      return Object.keys(this._hass?.states || {}).filter(eid => eid.startsWith('climate.aircon'));
-    }
-  }
-
+  
+  // Convert hex to RGB
   hexToRgb(hex) {
     let cleanHex = hex.replace(/^#/, '');
     if (cleanHex.length === 3) {
@@ -343,6 +378,7 @@ class AirconControlCard extends HTMLElement {
     return { r, g, b };
   }
 
+  // Convert RGB to HSL
   rgbToHsl(r, g, b) {
     r /= 255;
     g /= 255;
@@ -350,8 +386,9 @@ class AirconControlCard extends HTMLElement {
     const max = Math.max(r, g, b);
     const min = Math.min(r, g, b);
     let h, s, l = (max + min) / 2;
+
     if (max === min) {
-      h = s = 0;
+      h = s = 0; // achromatic
     } else {
       const d = max - min;
       s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
@@ -365,6 +402,7 @@ class AirconControlCard extends HTMLElement {
     return { h: h * 360, s: s * 100, l: l * 100 };
   }
 
+  // Convert HSL to RGB
   hslToRgb(h, s, l) {
     s /= 100;
     l /= 100;
@@ -372,99 +410,104 @@ class AirconControlCard extends HTMLElement {
     const x = c * (1 - Math.abs((h / 60) % 2 - 1));
     const m = l - c / 2;
     let r = 0, g = 0, b = 0;
-    if (0 <= h && h < 60) { r = c; g = x; b = 0; }
-    else if (60 <= h && h < 120) { r = x; g = c; b = 0; }
-    else if (120 <= h && h < 180) { r = 0; g = c; b = x; }
-    else if (180 <= h && h < 240) { r = 0; g = x; b = c; }
-    else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
-    else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
+
+    if (0 <= h && h < 60) {
+      r = c; g = x; b = 0;
+    } else if (60 <= h && h < 120) {
+      r = x; g = c; b = 0;
+    } else if (120 <= h && h < 180) {
+      r = 0; g = c; b = x;
+    } else if (180 <= h && h < 240) {
+      r = 0; g = x; b = c;
+    } else if (240 <= h && h < 300) {
+      r = x; g = 0; b = c;
+    } else if (300 <= h && h < 360) {
+      r = c; g = 0; b = x;
+    }
     r = Math.round((r + m) * 255);
     g = Math.round((g + m) * 255);
     b = Math.round((b + m) * 255);
     return { r, g, b };
   }
 
+  // Get complementary color
   getComplementaryColor(hex) {
     const { r, g, b } = this.hexToRgb(hex);
     const { h, s, l } = this.rgbToHsl(r, g, b);
-    const compH = (h + 180) % 360;
-    const compL = Math.min(l + 10, 80);
+    const compH = (h + 180) % 360; // Shift hue by 180 degrees
+    const compL = Math.min(l + 10, 80); // Slightly adjust lightness
     const { r: newR, g: newG, b: newB } = this.hslToRgb(compH, s, compL);
     return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
   }
 
   rgbToHex(rgb) {
     const result = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(rgb);
-    if (!result) return rgb;
+    if (!result) return rgb; // Return original if not in rgb format
     const r = parseInt(result[1]).toString(16).padStart(2, '0');
     const g = parseInt(result[2]).toString(16).padStart(2, '0');
     const b = parseInt(result[3]).toString(16).padStart(2, '0');
     return `#${r}${g}${b}`;
   }
-
+  
+  // Convert hex to rgba with specified opacity
   hexToRgba(hex, opacity) {
     const { r, g, b } = this.hexToRgb(hex);
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   }
 
   anyColorToHex(color) {
-    const colorMap = {white:'#FFFFFF',black:'#000000',red:'#FF0000',green:'#008000',blue:'#0000FF',yellow:'#FFFF00',purple:'#800080',orange:'#FFA500',gray:'#808080',cyan:'#00FFFF',magenta:'#FF00FF',pink:'#FFC0CB',brown Trigonal planar angle = 120° trigonal planar, 90° = tetrahedral, 109.5° brown:'#A52A2A',lime:'#00FF00',teal:'#008080',violet:'#EE82EE',indigo:'#4B0082',silver:'#C0C0C0',gold:'#FFD700',olive:'#808000',maroon:'#800000',navy:'#000080',lightred:'#FF6666',lightgreen:'#90EE90',lightblue:'#ADD8E6',lightyellow:'#FFFFE0',lightpurple:'#DDA0DD',lightorange:'#FFDAB9',lightgray:'#D3D3D3',lightcyan:'#E0FFFF',lightpink:'#FFB6C1',lightbrown:'#DEB887',darkred:'#8B0000',darkgreen:'#006400',darkblue:'#00008B',darkyellow:'#CCCC00',darkpurple:'#4B0082',darkorange:'#FF8C00',darkgray:'#696969',darkcyan:'#008B8B',darkpink:'#C71585',darkbrown:'#3C2F2F',aqua:'#00FFFF',fuchsia:'#FF00FF',turquoise:'#40E0D0',coral:'#FF7F50',salmon:'#FA8072',khaki:'#F0E68C',lavender:'#E6E6FA',plum:'#DDA0DD',orchid:'#DA70D6',sienna:'#A0522D',chocolate:'#D2691E',tomato:'#FF6347',crimson:'#DC143C',slateblue:'#6A5ACD',slategray:'#708090',seagreen:'#2E8B57',skyblue:'#87CEEB',steelblue:'#4682B4',beige:'#F5F5DC',ivory:'#FFFFF0',honeydew:'#F0FFF0',mintcream:'#F5FFFA',azure:'#F0FFFF',aliceblue:'#F0F8FF',ghostwhite:'#F8F8FF',snow:'#FFFAFA',seashell:'#FFF5EE',linen:'#FAF0E6',floralwhite:'#FFFAF0',oldlace:'#FDF5E6',wheat:'#F5DEB3',moccasin:'#FFE4B5',peachpuff:'#FFDAB9',palegoldenrod:'#EEE8AA',lightgoldenrodyellow:'#FAFAD2',lemonchiffon:'#FFFACD',lightcoral:'#F08080',palevioletred:'#DB7093',mediumpurple:'#9370DB',mediumorchid:'#BA55D3',darkorchid:'#9932CC',darkviolet:'#9400D3',mediumblue:'#0000CD',midnightblue:'#191970',darkslateblue:'#483D8B',mediumseagreen:'#3CB371',forestgreen:'#228B22',darkolivegreen:'#556B2F',darkseagreen:'#8FBC8F',mediumaquamarine:'#66CDAA',darkturquoise:'#00CED1',lightseagreen:'#20B2AA',cadetblue:'#5F9EA0',powderblue:'#B0E0E6',lightskyblue:'#87CEFA',deepskyblue:'#00B7EB',dodgerblue:'#1E90FF',cornflowerblue:'#6495ED',royalblue:'#4169E1',mediumturquoise:'#48D1CC',paleturquoise:'#AFEEEE',lightsteelblue:'#B0C4DE',lavenderblush:'#FFF0F5',mistyrose:'#FFE4E1',thistle:'#D8BFD8',antiquewhite:'#FAEBD7',bisque:'#FFE4C4',blanchedalmond:'#FFEBCD',navajowhite:'#FFDEAD',papayawhip:'#FFEFD5',tan:'#D2B48C',burlywood:'#DEB887',sandybrown:'#F4A460',goldenrod:'#DAA520',darkgoldenrod:'#B8860B',peru:'#CD853F',rosybrown:'#BC8F8F',saddlebrown:'#8B4513',indianred:'#CD5C5C',firebrick:'#B22222',darksalmon:'#E9967A',lightpink:'#FFB6C1',hotpink:'#FF69B4',deeppink:'#FF1493',mediumvioletred:'#C71585',palevioletred:'#DB7093'};
+    const colorMap = {white:'#FFFFFF',black:'#000000',red:'#FF0000',green:'#008000',blue:'#0000FF',yellow:'#FFFF00',purple:'#800080',orange:'#FFA500',gray:'#808080',cyan:'#00FFFF',magenta:'#FF00FF',pink:'#FFC0CB',brown:'#A52A2A',lime:'#00FF00',teal:'#008080',violet:'#EE82EE',indigo:'#4B0082',silver:'#C0C0C0',gold:'#FFD700',olive:'#808000',maroon:'#800000',navy:'#000080',lightred:'#FF6666',lightgreen:'#90EE90',lightblue:'#ADD8E6',lightyellow:'#FFFFE0',lightpurple:'#DDA0DD',lightorange:'#FFDAB9',lightgray:'#D3D3D3',lightcyan:'#E0FFFF',lightpink:'#FFB6C1',lightbrown:'#DEB887',darkred:'#8B0000',darkgreen:'#006400',darkblue:'#00008B',darkyellow:'#CCCC00',darkpurple:'#4B0082',darkorange:'#FF8C00',darkgray:'#696969',darkcyan:'#008B8B',darkpink:'#C71585',darkbrown:'#3C2F2F',aqua:'#00FFFF',fuchsia:'#FF00FF',turquoise:'#40E0D0',coral:'#FF7F50',salmon:'#FA8072',khaki:'#F0E68C',lavender:'#E6E6FA',plum:'#DDA0DD',orchid:'#DA70D6',sienna:'#A0522D',chocolate:'#D2691E',tomato:'#FF6347',crimson:'#DC143C',slateblue:'#6A5ACD',slategray:'#708090',seagreen:'#2E8B57',skyblue:'#87CEEB',steelblue:'#4682B4',beige:'#F5F5DC',ivory:'#FFFFF0',honeydew:'#F0FFF0',mintcream:'#F5FFFA',azure:'#F0FFFF',aliceblue:'#F0F8FF',ghostwhite:'#F8F8FF',snow:'#FFFAFA',seashell:'#FFF5EE',linen:'#FAF0E6',floralwhite:'#FFFAF0',oldlace:'#FDF5E6',wheat:'#F5DEB3',moccasin:'#FFE4B5',peachpuff:'#FFDAB9',palegoldenrod:'#EEE8AA',lightgoldenrodyellow:'#FAFAD2',lemonchiffon:'#FFFACD',lightcoral:'#F08080',palevioletred:'#DB7093',mediumpurple:'#9370DB',mediumorchid:'#BA55D3',darkorchid:'#9932CC',darkviolet:'#9400D3',mediumblue:'#0000CD',midnightblue:'#191970',darkslateblue:'#483D8B',mediumseagreen:'#3CB371',forestgreen:'#228B22',darkolivegreen:'#556B2F',darkseagreen:'#8FBC8F',mediumaquamarine:'#66CDAA',darkturquoise:'#00CED1',lightseagreen:'#20B2AA',cadetblue:'#5F9EA0',powderblue:'#B0E0E6',lightskyblue:'#87CEFA',deepskyblue:'#00B7EB',dodgerblue:'#1E90FF',cornflowerblue:'#6495ED',royalblue:'#4169E1',mediumturquoise:'#48D1CC',paleturquoise:'#AFEEEE',lightsteelblue:'#B0C4DE',lavenderblush:'#FFF0F5',mistyrose:'#FFE4E1',thistle:'#D8BFD8',antiquewhite:'#FAEBD7',bisque:'#FFE4C4',blanchedalmond:'#FFEBCD',navajowhite:'#FFDEAD',papayawhip:'#FFEFD5',tan:'#D2B48C',burlywood:'#DEB887',sandybrown:'#F4A460',goldenrod:'#DAA520',darkgoldenrod:'#B8860B',peru:'#CD853F',rosybrown:'#BC8F8F',saddlebrown:'#8B4513',indianred:'#CD5C5C',firebrick:'#B22222',darksalmon:'#E9967A',lightpink:'#FFB6C1',hotpink:'#FF69B4',deeppink:'#FF1493',mediumvioletred:'#C71585',palevioletred:'#DB7093'};
     if (!color) return '#FFFFFF';
     if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(color)) return color.toUpperCase();
     return colorMap[color.toLowerCase()] || '#FFFFFF';
   }
-
+  
   shadeColor(color, percent) {
     let R = parseInt(color.substring(1, 3), 16);
     let G = parseInt(color.substring(3, 5), 16);
     let B = parseInt(color.substring(5, 7), 16);
+
     R = parseInt(R * (100 + percent) / 100);
     G = parseInt(G * (100 + percent) / 100);
     B = parseInt(B * (100 + percent) / 100);
+
     R = R < 255 ? R : 255;
     G = G < 255 ? G : 255;
     B = B < 255 ? B : 255;
+
     const RR = R.toString(16).length === 1 ? "0" + R.toString(16) : R.toString(16);
     const GG = G.toString(16).length === 1 ? "0" + G.toString(16) : G.toString(16);
     const BB = B.toString(16).length === 1 ? "0" + B.toString(16) : B.toString(16);
+
     return "#" + RR + GG + BB;
   }
 
   setConfig(config) {
+    if (!config.entity) {
+      throw new Error('You need to define an entity');
+    }
     this.config = config;
-    this.rooms_only = config.rooms_only || false;
     this.showModeNames = config.show_mode_names !== false;
 
-    if (!this.rooms_only && !config.entity && !config.entities) {
-      throw new Error('You need to define an entity or entities unless rooms_only is true');
-    }
-
-    const textColor = this.anyColorToHex(config.text_color || 'white');
+    // Default Text Color
+    const textColor = config.text_color || "white";
     this.shadowRoot.host.style.setProperty('--text-color', textColor);
-
+    
+    // Set default sphere colors if not provided
     const spherePrimary = config.sphere_primary_color || 'rgba(186,85,211, 0.3)';
     const sphereSecondary = config.sphere_secondary_color || 'rgba(255,105,180, 0.2)';
     this.shadowRoot.host.style.setProperty('--sphere-primary', spherePrimary);
     this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
 
+    // Set slider base color for sensor line and fan modes
     const defaultSliderColor = this.anyColorToHex(config.slider_color) || '#1B86EF';
+    
     this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
     this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, 20), 0.2));
     this.shadowRoot.host.style.setProperty('--slider-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -20), 0.2));
     this.shadowRoot.host.style.setProperty('--fan-base-color', this.shadeColor(defaultSliderColor, -50));
     this.shadowRoot.host.style.setProperty('--fan-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, -30), 0.2));
     this.shadowRoot.host.style.setProperty('--fan-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -70), 0.3));
-  }
-
-  set hass(hass) {
-    this._hass = hass;
-    if (!hass) return;
-
-    const entityIds = this.getEntityIds();
-    if (entityIds.length === 0) {
-      this.shadowRoot.innerHTML = `<hui-warning>No valid aircon entities found</hui-warning>`;
-      return;
-    }
 
     const modeData = {
       off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
@@ -475,156 +518,77 @@ class AirconControlCard extends HTMLElement {
       auto: { icon: 'mdi:autorenew', color: '#FFC107', name: 'Auto' },
     };
 
-    // Render controls for each entity
-    entityIds.forEach(entityId => {
-      const climate = hass.states[entityId];
-      if (!climate) return;
+    // Initialize HVAC mode buttons
+    const modesContainer = this.shadowRoot.querySelector('.modes');
+    let modeButtons = '';
+    Object.entries(modeData).forEach(([modeKey, md]) => {
+      modeButtons += `
+        <button class="mode-btn" data-mode="${modeKey}" style="color:#ccc">
+          <ha-icon icon="${md.icon}" style="color:#ccc"></ha-icon>
+          ${this.showModeNames ? `<span class="mode-name">${md.name}</span>` : ''}
+        </button>`;
+    });
+    modesContainer.innerHTML = modeButtons;
 
-      const minTemp = climate.attributes.min_temp ?? 16;
-      const maxTemp = climate.attributes.max_temp ?? 30;
-      const currentTemp = climate.attributes.temperature ?? climate.attributes.current_temperature ?? minTemp;
-      const displayTemp = this._localTemp !== null ? this._localTemp : currentTemp;
-      const currentMode = climate.attributes.hvac_mode ?? climate.state;
-      const powerOn = climate.state !== 'off';
-      const fanModes = climate.attributes.fan_modes ?? ['low', 'medium', 'high', 'auto'];
-      const currentFanMode = climate.attributes.fan_mode ?? null;
-
-      const glowColor = modeData[currentMode]?.color ?? '#b37fed';
-      if (this._lastStates.glowColor !== glowColor) {
-        this.shadowRoot.host.style.setProperty('--glow-color', glowColor);
-        this._lastStates.glowColor = glowColor;
-      }
-
-      const isHeatMode = currentMode === 'heat';
-      const decColor = isHeatMode ? '#F44336' : '#2196F3';
-      const incColor = isHeatMode ? '#2196F3' : '#F44336';
-      if (this._lastStates.decColor !== decColor || this._lastStates.incColor !== incColor) {
-        this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color', decColor);
-        this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color-dark', this.shadeColor(decColor, -20));
-        this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color', incColor);
-        this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color-dark', this.shadeColor(incColor, -20));
-        this._lastStates.decColor = decColor;
-        this._lastStates.incColor = incColor;
-      }
-
-      const modesContainer = this.shadowRoot.querySelector('.modes');
-      let modeButtons = '';
-      Object.entries(modeData).forEach(([modeKey, md]) => {
-        const isSelected = currentMode === modeKey;
-        modeButtons += `
-          <button class="mode-btn ${isSelected ? 'mode-selected' : ''}" data-mode="${modeKey}" style="color:${isSelected ? md.color : '#ccc'}">
-            <ha-icon icon="${md.icon}" style="color:${isSelected ? md.color : '#ccc'}"></ha-icon>
-            ${this.showModeNames ? `<span class="mode-name">${md.name}</span>` : ''}
-          </button>`;
-      });
-      modesContainer.innerHTML = modeButtons;
-
-      modesContainer.querySelectorAll('.mode-btn').forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', () => {
-          const mode = newBtn.getAttribute('data-mode');
-          if (this._hass) {
-            if (mode === 'off') {
-              this._hass.callService('climate', 'turn_off', { entity_id: entityId });
-            } else {
-              this._hass.callService('climate', 'set_hvac_mode', { entity_id: entityId, hvac_mode: mode });
-            }
+    modesContainer.querySelectorAll('.mode-btn').forEach(btn => {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', () => {
+        const mode = newBtn.getAttribute('data-mode');
+        if (this._hass) {
+          if (mode === 'off') {
+            this._hass.callService('climate', 'turn_off', { entity_id: config.entity });
+          } else {
+            this._hass.callService('climate', 'set_hvac_mode', {
+              entity_id: config.entity,
+              hvac_mode: mode
+            });
           }
-        });
-      });
-
-      const fanModesContainer = this.shadowRoot.querySelector('.fan-modes');
-      let fanSpeedButtons = '';
-      const fanColor = this.getComplementaryColor(this.anyColorToHex(this.config.slider_color) || '#1B86EF');
-      fanModes.forEach(fm => {
-        const isSelected = currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase();
-        fanSpeedButtons += `
-          <div class="fan-btn-container">
-            <button class="fan-btn ${isSelected ? 'fan-selected' : ''}" data-fan-mode="${fm}" style="color:${isSelected ? fanColor : '#ccc'}" data-fan-color="${fanColor}">
-              <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
-            </button>
-          </div>`;
-      });
-      fanModesContainer.innerHTML = fanSpeedButtons;
-
-      fanModesContainer.querySelectorAll('.fan-btn').forEach(btn => {
-        const newBtn = btn.cloneNode(true);
-        btn.parentNode.replaceChild(newBtn, btn);
-        newBtn.addEventListener('click', () => {
-          const fm = newBtn.getAttribute('data-fan-mode');
-          if (this._hass) {
-            this._hass.callService('climate', 'set_fan_mode', { entity_id: entityId, fan_mode: fm });
-          }
-        });
-      });
-
-      const tempValue = this.shadowRoot.querySelector('.temp-value');
-      if (tempValue && this._lastStates.tempValueKey !== displayTemp.toString()) {
-        tempValue.textContent = `${displayTemp.toFixed(1)}°C`;
-        this._lastStates.tempValueKey = displayTemp.toString();
-      }
-
-      const tempCircleContainer = this.shadowRoot.querySelector('.temp-circle-container');
-      if (tempCircleContainer && this._lastStates.powerKey !== powerOn.toString()) {
-        tempCircleContainer.classList.toggle('glow', powerOn);
-        this._lastStates.powerKey = powerOn.toString();
-      }
-
-      const modeInCircle = this.shadowRoot.querySelector('.mode-in-circle');
-      if (modeInCircle && this._lastStates.modeKey !== currentMode) {
-        const mode = modeData[currentMode] || {};
-        const iconEl = modeInCircle.querySelector('ha-icon');
-        const labelEl = modeInCircle.querySelector('span');
-
-        if (iconEl) {
-          iconEl.setAttribute('icon', mode.icon || '');
-          iconEl.style.color = mode.color || '';
         }
-        if (labelEl) {
-          labelEl.textContent = mode.name || '';
-          labelEl.style.color = mode.color || '';
-        }
-        this._lastStates.modeKey = currentMode;
-      }
-
-      if (!this._setpointListenersAdded) {
-        const decBtn = this.shadowRoot.querySelector('#dec-setpoint');
-        decBtn.addEventListener('click', () => {
-          if (!this._hass || !this._hass.states[entityId]) return;
-          const climate = this._hass.states[entityId];
-          const minTemp = climate.attributes.min_temp ?? 16;
-          const displayTemp = this._localTemp ?? (climate.attributes.temperature ?? climate.attributes.current_temperature ?? minTemp);
-          let nt = displayTemp - 1;
-          if (nt < minTemp) nt = minTemp;
-          this._localTemp = nt;
-          this._hass.callService('climate', 'set_temperature', { entity_id: entityId, temperature: nt });
-        });
-
-        const incBtn = this.shadowRoot.querySelector('#inc-setpoint');
-        incBtn.addEventListener('click', () => {
-          if (!this._hass || !this._hass.states[entityId]) return;
-          const climate = this._hass.states[entityId];
-          const maxTemp = climate.attributes.max_temp ?? 30;
-          const displayTemp = this._localTemp ?? (climate.attributes.temperature ?? climate.attributes.current_temperature ?? maxTemp);
-          let nt = displayTemp + 1;
-          if (nt > maxTemp) nt = maxTemp;
-          this._localTemp = nt;
-          this._hass.callService('climate', 'set_temperature', { entity_id: entityId, temperature: nt });
-        });
-        this._setpointListenersAdded = true;
-      }
+      });
     });
 
-    // Handle room sliders (unchanged)
+    // Initialize fan mode buttons with fallback
+    const fanModesContainer = this.shadowRoot.querySelector('.fan-modes');
+    const fallbackFanModes = ['low', 'medium', 'high', 'auto'];
+    const fanModes = this._hass && this._hass.states[config.entity]?.attributes.fan_modes?.length > 0
+      ? this._hass.states[config.entity].attributes.fan_modes
+      : fallbackFanModes;
+    let fanSpeedButtons = '';
+    const fanColor = this.getComplementaryColor(defaultSliderColor);
+    fanModes.forEach(fm => {
+      fanSpeedButtons += `
+        <div class="fan-btn-container">
+          <button class="fan-btn" data-fan-mode="${fm}" style="color:#ccc" data-fan-color="${fanColor}">
+            <span class="fan-name">${fm.charAt(0).toUpperCase() + fm.slice(1)}</span>
+          </button>
+        </div>`;
+    });
+    fanModesContainer.innerHTML = fanSpeedButtons;
+
+    fanModesContainer.querySelectorAll('.fan-btn').forEach(btn => {
+      const newBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(newBtn, btn);
+      newBtn.addEventListener('click', () => {
+        const fm = newBtn.getAttribute('data-fan-mode');
+        if (this._hass) {
+          this._hass.callService('climate', 'set_fan_mode', {
+            entity_id: config.entity,
+            fan_mode: fm
+          });
+        }
+      });
+    });
+
+    // Initialize room controls
     const roomSection = this.shadowRoot.querySelector('.room-section');
-    if (this.config.rooms && Array.isArray(this.config.rooms)) {
+    if (config.rooms && Array.isArray(config.rooms)) {
       let roomControls = '';
-      this.config.rooms.forEach(room => {
-        const sliderColor = room.color ?? this.config.slider_color ?? '#1B86EF';
-        const primaryColor = this.hexToRgba(sliderColor, 0.7);
-        const darkColor = this.hexToRgba(this.shadeColor(sliderColor, -40), 0.3);
-        const lightColor = this.hexToRgba(this.shadeColor(sliderColor, 50), 0.1);
+      config.rooms.forEach(room => {
+        const sliderColor = room.color ?? config.slider_color ?? '#1B86EF';
+        const primaryColor = this.hexToRgba(sliderColor, 0.7); // Primary color, 70% opacity
+        const darkColor = this.hexToRgba(this.shadeColor(sliderColor, -40), 0.3); // Darker shade, 30% opacity
+        const lightColor = this.hexToRgba(this.shadeColor(sliderColor, 50), 0.1); // Light shade, 10% opacity
         roomControls += `
           <div class="room-block" data-entity="${room.slider_entity}">
             <input
@@ -688,22 +652,120 @@ class AirconControlCard extends HTMLElement {
       roomSection.innerHTML = '';
     }
 
-    // Update sensor line
-    const getState = id => {
-      const s = hass.states[id];
-      return s && s.state !== 'unknown' && s.state !== 'unavailable' ? s.state : null;
+    // Add setpoint button listeners
+    if (!this._setpointListenersAdded) {
+      const decBtn = this.shadowRoot.querySelector('#dec-setpoint');
+      decBtn.addEventListener('click', () => {
+        if (!this._hass || !this._hass.states[config.entity]) return;
+        const climate = this._hass.states[config.entity];
+        const minTemp = climate.attributes.min_temp ?? 16;
+        const displayTemp = this._localTemp ?? (climate.attributes.temperature ?? climate.attributes.current_temperature ?? minTemp);
+        let nt = displayTemp - 1;
+        if (nt < minTemp) nt = minTemp;
+        this._localTemp = nt;
+        this._hass.callService('climate', 'set_temperature', {
+          entity_id: config.entity,
+          temperature: nt
+        });
+      });
+
+      const incBtn = this.shadowRoot.querySelector('#inc-setpoint');
+      incBtn.addEventListener('click', () => {
+        if (!this._hass || !this._hass.states[config.entity]) return;
+        const climate = this._hass.states[config.entity];
+        const maxTemp = climate.attributes.max_temp ?? 30;
+        const displayTemp = this._localTemp ?? (climate.attributes.temperature ?? climate.attributes.current_temperature ?? maxTemp);
+        let nt = displayTemp + 1;
+        if (nt > maxTemp) nt = maxTemp;
+        this._localTemp = nt;
+        this._hass.callService('climate', 'set_temperature', {
+          entity_id: config.entity,
+          temperature: nt
+        });
+      });
+      this._setpointListenersAdded = true;
+    }
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    const cfg = this.config;
+    if (!cfg || !hass.states[cfg.entity]) {
+      this.shadowRoot.innerHTML = `<hui-warning>${cfg?.entity || 'Entity'} not available</hui-warning>`;
+      return;
+    }
+
+    const climate = hass.states[cfg.entity];
+    const minTemp = climate.attributes.min_temp ?? 16;
+    const maxTemp = climate.attributes.max_temp ?? 30;
+    const currentTemp = climate.attributes.temperature ?? climate.attributes.current_temperature ?? minTemp;
+
+    if (
+      this._localTemp !== null &&
+      Math.abs(this._localTemp - currentTemp) < 0.1
+    ) {
+      this._localTemp = null;
+    }
+    const displayTemp = this._localTemp !== null ? this._localTemp : currentTemp;
+
+    const currentMode = climate.attributes.hvac_mode ?? climate.state;
+    const powerOn = climate.state !== 'off';
+    const fanModes = climate.attributes.fan_modes ?? [];
+    const currentFanMode = climate.attributes.fan_mode ?? null;
+
+    const modeData = {
+      off: { icon: 'mdi:power', color: '#D69E5E', name: 'Off' },
+      cool: { icon: 'mdi:snowflake', color: '#2196F3', name: 'Cool' },
+      heat: { icon: 'mdi:fire', color: '#F44336', name: 'Heat' },
+      fan_only: { icon: 'mdi:fan', color: '#9E9E9E', name: 'Fan' },
+      dry: { icon: 'mdi:water-percent', color: '#009688', name: 'Dry' },
+      auto: { icon: 'mdi:autorenew', color: '#FFC107', name: 'Auto' },
     };
 
-    const sensorSolar = this.config.solar_sensor ? getState(this.config.solar_sensor) : null;
-    const sensorHouseTemp = this.config.house_temp_sensor ? getState(this.config.house_temp_sensor) : null;
-    const sensorHouseHum = this.config.house_humidity_sensor ? getState(this.config.house_humidity_sensor) : null;
-    const sensorOutsideTemp = this.config.outside_temp_sensor ? getState(this.config.outside_temp_sensor) : null;
-    const sensorOutsideHum = this.config.outside_humidity_sensor ? getState(this.config.outside_humidity_sensor) : null;
+    const glowColor = modeData[currentMode]?.color ?? '#b37fed';
+    if (this._lastStates.glowColor !== glowColor) {
+      this.shadowRoot.host.style.setProperty('--glow-color', glowColor);
+      this._lastStates.glowColor = glowColor;
+    }
+
+    // Set setpoint button colors based on mode
+    const isHeatMode = currentMode === 'heat';
+    const decColor = isHeatMode ? '#F44336' : '#2196F3'; // Red for heat, blue for others
+    const incColor = isHeatMode ? '#2196F3' : '#F44336'; // Blue for heat, red for others
+    if (this._lastStates.decColor !== decColor || this._lastStates.incColor !== incColor) {
+      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color', decColor);
+      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color-dark', this.shadeColor(decColor, -20));
+      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color', incColor);
+      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color-dark', this.shadeColor(incColor, -20));
+      this._lastStates.decColor = decColor;
+      this._lastStates.incColor = incColor;
+    }
+
+    const getState = id => {
+      const s = hass.states[id];
+      if (!s || s.state === 'unknown' || s.state === 'unavailable') {
+        return null;
+      }
+      return s.state;
+    };
+
+    // Update sensor line only if sensors have changed
+    const sensorSolar = cfg.solar_sensor ? getState(cfg.solar_sensor) : null;
+    const sensorHouseTemp = cfg.house_temp_sensor ? getState(cfg.house_temp_sensor) : null;
+    const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
+    const sensorOutsideTemp = cfg.outside_temp_sensor ? getState(cfg.outside_temp_sensor) : null;
+    const sensorOutsideHum = cfg.outside_humidity_sensor ? getState(cfg.outside_humidity_sensor) : null;
 
     const sensorKey = `${sensorSolar}|${sensorHouseTemp}|${sensorHouseHum}|${sensorOutsideTemp}|${sensorOutsideHum}`;
     if (this._lastStates.sensorKey !== sensorKey) {
       const sensorLine = this.shadowRoot.querySelector('.sensor-line');
-      if (sensorSolar !== null || sensorHouseTemp !== null || sensorHouseHum !== null || sensorOutsideTemp !== null || sensorOutsideHum !== null) {
+      if (
+        sensorSolar !== null ||
+        sensorHouseTemp !== null ||
+        sensorHouseHum !== null ||
+        sensorOutsideTemp !== null ||
+        sensorOutsideHum !== null
+      ) {
         const parts = [];
         if (sensorHouseTemp !== null || sensorHouseHum !== null) {
           const temp = sensorHouseTemp !== null ? `${sensorHouseTemp}°C` : '';
@@ -725,13 +787,86 @@ class AirconControlCard extends HTMLElement {
       this._lastStates.sensorKey = sensorKey;
     }
 
-    // Update room sliders
-    if (this.config.rooms && Array.isArray(this.config.rooms)) {
+    // Update mode buttons only if mode has changed
+    if (this._lastStates.currentMode !== currentMode) {
+      this.shadowRoot.querySelectorAll('.mode-btn').forEach(btn => {
+        const modeKey = btn.getAttribute('data-mode');
+        const isSel = currentMode === modeKey;
+        const color = isSel ? modeData[modeKey].color : '#ccc';
+        btn.classList.toggle('mode-selected', isSel);
+        btn.style.color = color;
+        btn.querySelector('ha-icon').style.color = color;
+      });
+      this._lastStates.currentMode = currentMode;
+    }
+
+    // Update fan mode buttons only if fan mode has changed
+    if (this._lastStates.currentFanMode !== currentFanMode) {
+      const defaultSliderColor = this.anyColorToHex(cfg.slider_color) || '#1B86EF';
+      const fanColor = this.getComplementaryColor(defaultSliderColor);
+      this.shadowRoot.querySelectorAll('.fan-btn').forEach(btn => {
+        const fm = btn.getAttribute('data-fan-mode');
+        const sel = currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase();
+        btn.classList.toggle('fan-selected', sel);
+        btn.style.color = sel ? fanColor : '#ccc';
+      });
+      this._lastStates.currentFanMode = currentFanMode;
+    }
+
+    // Update temperature display and mode in circle only if temperature, power state, or mode has changed
+    // Separate keys for each state section
+    const tempValueKey = `${displayTemp}`;
+    const powerKey = `${powerOn}`;
+    const modeKey = `${currentMode}`;
+    
+    // Update temperature display
+    if (this._lastStates.tempValueKey !== tempValueKey) {
+      const tempValue = this.shadowRoot.querySelector('.temp-value');
+      if (tempValue) {
+        tempValue.textContent = `${displayTemp.toFixed(1)}°C`;
+      }
+      this._lastStates.tempValueKey = tempValueKey;
+    }
+    
+    // Update power (glow effect)
+    if (this._lastStates.powerKey !== powerKey) {
+      const tempCircleContainer = this.shadowRoot.querySelector('.temp-circle-container');
+      if (tempCircleContainer) {
+        tempCircleContainer.classList.toggle('glow', powerOn);
+      }
+      this._lastStates.powerKey = powerKey;
+    }
+    
+    // Update mode icon, label, and color
+    if (this._lastStates.modeKey !== modeKey) {
+      const modeInCircle = this.shadowRoot.querySelector('.mode-in-circle');
+      const mode = modeData[currentMode] || {};
+    
+      if (modeInCircle) {
+        const iconEl = modeInCircle.querySelector('ha-icon');
+        const labelEl = modeInCircle.querySelector('span');
+    
+        if (iconEl) {
+          iconEl.setAttribute('icon', mode.icon || '');
+          iconEl.style.color = mode.color || '';
+        }
+        if (labelEl) {
+          labelEl.textContent = mode.name || '';
+          labelEl.style.color = mode.color || '';
+        }
+      }
+    
+      this._lastStates.modeKey = modeKey;
+    }
+
+
+    // Update room sliders only if their state or sensor has changed
+    if (cfg.rooms && Array.isArray(cfg.rooms)) {
       this.shadowRoot.querySelectorAll('.room-block').forEach(block => {
         const entityId = block.getAttribute('data-entity');
         const slider = block.querySelector('.styled-room-slider');
         const sliderEnt = hass.states[entityId];
-        const room = this.config.rooms.find(r => r.slider_entity === entityId);
+        const room = cfg.rooms.find(r => r.slider_entity === entityId);
         const sensorEnt = room ? hass.states[room.sensor_entity] : null;
         let sliderVal = 0;
         if (sliderEnt) {
@@ -741,6 +876,7 @@ class AirconControlCard extends HTMLElement {
             sliderVal = Number(sliderEnt.state);
           }
         }
+        // Round sliderVal to nearest multiple of 5 to match step
         sliderVal = Math.round(sliderVal / 5) * 5;
         sliderVal = Math.max(0, Math.min(100, sliderVal));
         const sensorVal = sensorEnt && !isNaN(Number(sensorEnt.state)) ? Number(sensorEnt.state) : null;
