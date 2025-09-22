@@ -365,7 +365,7 @@ class AirconControlCard extends HTMLElement {
       <div class="room-section"></div>
     `;
   }
-
+  
   // Convert hex to RGB
   hexToRgb(hex) {
     let cleanHex = hex.replace(/^#/, '');
@@ -456,28 +456,10 @@ class AirconControlCard extends HTMLElement {
   }
 
   anyColorToHex(color) {
-    // Check if it's already a valid hex color
-    if (/^#([0-9A-F]{3}){1,2}$/i.test(color)) {
-      return color;
-    }
-  
-    // Create a temp element to compute RGB
-    const temp = document.createElement('div');
-    temp.style.color = color;
-    document.body.appendChild(temp);
-  
-    const computed = getComputedStyle(temp).color;
-    document.body.removeChild(temp);
-  
-    // Extract RGB from computed color
-    const result = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(computed);
-    if (!result) return color; // fallback if not RGB
-  
-    const r = parseInt(result[1]).toString(16).padStart(2, '0');
-    const g = parseInt(result[2]).toString(16).padStart(2, '0');
-    const b = parseInt(result[3]).toString(16).padStart(2, '0');
-  
-    return `#${r}${g}${b}`;
+    const colorMap = {white:'#FFFFFF',black:'#000000',red:'#FF0000',green:'#008000',blue:'#0000FF',yellow:'#FFFF00',purple:'#800080',orange:'#FFA500',gray:'#808080',cyan:'#00FFFF',magenta:'#FF00FF',pink:'#FFC0CB',brown:'#A52A2A',lime:'#00FF00',teal:'#008080',violet:'#EE82EE',indigo:'#4B0082',silver:'#C0C0C0',gold:'#FFD700',olive:'#808000',maroon:'#800000',navy:'#000080',lightred:'#FF6666',lightgreen:'#90EE90',lightblue:'#ADD8E6',lightyellow:'#FFFFE0',lightpurple:'#DDA0DD',lightorange:'#FFDAB9',lightgray:'#D3D3D3',lightcyan:'#E0FFFF',lightpink:'#FFB6C1',lightbrown:'#DEB887',darkred:'#8B0000',darkgreen:'#006400',darkblue:'#00008B',darkyellow:'#CCCC00',darkpurple:'#4B0082',darkorange:'#FF8C00',darkgray:'#696969',darkcyan:'#008B8B',darkpink:'#C71585',darkbrown:'#3C2F2F',aqua:'#00FFFF',fuchsia:'#FF00FF',turquoise:'#40E0D0',coral:'#FF7F50',salmon:'#FA8072',khaki:'#F0E68C',lavender:'#E6E6FA',plum:'#DDA0DD',orchid:'#DA70D6',sienna:'#A0522D',chocolate:'#D2691E',tomato:'#FF6347',crimson:'#DC143C',slateblue:'#6A5ACD',slategray:'#708090',seagreen:'#2E8B57',skyblue:'#87CEEB',steelblue:'#4682B4',beige:'#F5F5DC',ivory:'#FFFFF0',honeydew:'#F0FFF0',mintcream:'#F5FFFA',azure:'#F0FFFF',aliceblue:'#F0F8FF',ghostwhite:'#F8F8FF',snow:'#FFFAFA',seashell:'#FFF5EE',linen:'#FAF0E6',floralwhite:'#FFFAF0',oldlace:'#FDF5E6',wheat:'#F5DEB3',moccasin:'#FFE4B5',peachpuff:'#FFDAB9',palegoldenrod:'#EEE8AA',lightgoldenrodyellow:'#FAFAD2',lemonchiffon:'#FFFACD',lightcoral:'#F08080',palevioletred:'#DB7093',mediumpurple:'#9370DB',mediumorchid:'#BA55D3',darkorchid:'#9932CC',darkviolet:'#9400D3',mediumblue:'#0000CD',midnightblue:'#191970',darkslateblue:'#483D8B',mediumseagreen:'#3CB371',forestgreen:'#228B22',darkolivegreen:'#556B2F',darkseagreen:'#8FBC8F',mediumaquamarine:'#66CDAA',darkturquoise:'#00CED1',lightseagreen:'#20B2AA',cadetblue:'#5F9EA0',powderblue:'#B0E0E6',lightskyblue:'#87CEFA',deepskyblue:'#00B7EB',dodgerblue:'#1E90FF',cornflowerblue:'#6495ED',royalblue:'#4169E1',mediumturquoise:'#48D1CC',paleturquoise:'#AFEEEE',lightsteelblue:'#B0C4DE',lavenderblush:'#FFF0F5',mistyrose:'#FFE4E1',thistle:'#D8BFD8',antiquewhite:'#FAEBD7',bisque:'#FFE4C4',blanchedalmond:'#FFEBCD',navajowhite:'#FFDEAD',papayawhip:'#FFEFD5',tan:'#D2B48C',burlywood:'#DEB887',sandybrown:'#F4A460',goldenrod:'#DAA520',darkgoldenrod:'#B8860B',peru:'#CD853F',rosybrown:'#BC8F8F',saddlebrown:'#8B4513',indianred:'#CD5C5C',firebrick:'#B22222',darksalmon:'#E9967A',lightpink:'#FFB6C1',hotpink:'#FF69B4',deeppink:'#FF1493',mediumvioletred:'#C71585',palevioletred:'#DB7093'};
+    if (!color) return '#FFFFFF';
+    if (/^#([0-9A-F]{3}|[0-9A-F]{6})$/i.test(color)) return color.toUpperCase();
+    return colorMap[color.toLowerCase()] || '#FFFFFF';
   }
   
   shadeColor(color, percent) {
@@ -864,10 +846,13 @@ class AirconControlCard extends HTMLElement {
         const iconEl = modeInCircle.querySelector('ha-icon');
         const labelEl = modeInCircle.querySelector('span');
     
-        if (iconEl) iconEl.setAttribute('icon', mode.icon || '');
-        if (labelEl) labelEl.textContent = mode.name || '';
-        if (mode.color) {
-          modeInCircle.style.setProperty('background-color', mode.color);
+        if (iconEl) {
+          iconEl.setAttribute('icon', mode.icon || '');
+          iconEl.style.color = mode.color || '';
+        }
+        if (labelEl) {
+          labelEl.textContent = mode.name || '';
+          labelEl.textContent = mode.color || '';
         }
       }
     
