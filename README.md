@@ -58,11 +58,11 @@ resources:
 | `rooms`               | array     | No       | List of room slider configurations                              |
 | `sphere_primary_color` | string/rgb| No       | The sphere primary color                                       |
 | `sphere_secondary_color` | string/rgb| No       | The sphere secondary color                                       |
-| `slider_color`        | string    | No       | Default hex color for sliders if not specified per room         |
+| `slider_color`        | string    | No       | Default named color for sliders if not specified per room         |
 | &nbsp;&nbsp;`name`          | string    | Yes (per room) | Name displayed for each room slider                             |
 | &nbsp;&nbsp;`slider_entity` | string    | Yes (per room) | Entity ID for the cover or vent slider                          |
 | &nbsp;&nbsp;`sensor_entity` | string    | No       | Optional temperature or other sensor entity for the room        |
-| &nbsp;&nbsp;`color`          | string    | No       | Hex color code for the slider and UI elements in the room      |
+| &nbsp;&nbsp;`color`          | string    | No       | named color code for the slider and UI elements in the room      |
 | `solar_sensor`        | string    | No       | Sensor entity for solar power                                   |
 | `house_temp_sensor`   | string    | No       | Sensor entity for house temperature                             |
 | `house_humidity_sensor`| string   | No       | Sensor entity for house humidity                                |
