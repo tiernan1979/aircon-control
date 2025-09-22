@@ -797,15 +797,20 @@ class AirconControlCard extends HTMLElement {
     if (this._lastStates.currentFanMode !== currentFanMode) {
       const defaultSliderColor = cfg.slider_color || '#1B86EF';
       const fanColor = this.getComplementaryColor(defaultSliderColor);
+      const buttonColor = this.getComplementaryColor(fanColor);
       this.shadowRoot.querySelectorAll('.fan-btn').forEach(btn => {
         const fm = btn.getAttribute('data-fan-mode');
         const sel = currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase();
         btn.classList.toggle('fan-selected', sel);
         btn.style.Color = sel ? fanColor : '#ccc';
         const container = btn.closest('.fan-btn-container');
-        if (container) {
-          container.style.transform = sel ? 'scale(0.95)' : 'scale(1)';
-          container.style.transition = 'transform 0.1s ease-in-out';
+        if (container) {0
+          container.style.background = sel 
+            ? buttonColor // Use fanColor for active state background
+            : 'linear-gradient(145deg, var(--fan-base-color-light), var(--fan-base-color-dark))';          
+          container.style.boxShadow = sel 
+            ? 'inset 0 3px 6px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(255, 255, 255, 0.2)' 
+            : '0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.1)';                        
         }
       });
       this._lastStates.currentFanMode = currentFanMode;
