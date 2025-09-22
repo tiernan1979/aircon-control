@@ -19,7 +19,7 @@ class AirconControlCard extends HTMLElement {
           border-radius: 12px;
           padding: 16px;
           display: block;
-          max-width: 360px;
+          max-width: 400px;
           user-select: none;
           transition: background-color 0.3s ease;
         }
