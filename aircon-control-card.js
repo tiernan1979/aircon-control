@@ -455,6 +455,31 @@ class AirconControlCard extends HTMLElement {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   }
 
+  anyColorToHex(color) {
+    // Check if it's already a valid hex color
+    if (/^#([0-9A-F]{3}){1,2}$/i.test(color)) {
+      return color;
+    }
+  
+    // Create a temp element to compute RGB
+    const temp = document.createElement('div');
+    temp.style.color = color;
+    document.body.appendChild(temp);
+  
+    const computed = getComputedStyle(temp).color;
+    document.body.removeChild(temp);
+  
+    // Extract RGB from computed color
+    const result = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(computed);
+    if (!result) return color; // fallback if not RGB
+  
+    const r = parseInt(result[1]).toString(16).padStart(2, '0');
+    const g = parseInt(result[2]).toString(16).padStart(2, '0');
+    const b = parseInt(result[3]).toString(16).padStart(2, '0');
+  
+    return `#${r}${g}${b}`;
+  }
+  
   shadeColor(color, percent) {
     let R = parseInt(color.substring(1, 3), 16);
     let G = parseInt(color.substring(3, 5), 16);
@@ -493,7 +518,7 @@ class AirconControlCard extends HTMLElement {
     this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
 
     // Set slider base color for sensor line and fan modes
-    const defaultSliderColor = rgbToHex(config.slider_color) || '#1B86EF';
+    const defaultSliderColor = this.anyColorToHex(config.slider_color) || '#1B86EF';
     
     this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
     this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, 20), 0.2));
