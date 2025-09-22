@@ -440,7 +440,7 @@ class AirconControlCard extends HTMLElement {
     return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
   }
 
-  function rgbToHex(rgb) {
+  rgbToHex(rgb) {
     const result = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(rgb);
     if (!result) return rgb; // Return original if not in rgb format
     const r = parseInt(result[1]).toString(16).padStart(2, '0');
