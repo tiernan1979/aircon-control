@@ -820,7 +820,7 @@ class AirconControlCard extends HTMLElement {
 
     // Update fan mode buttons only if fan mode has changed
     if (this._lastStates.currentFanMode !== currentFanMode) {
-      const defaultSliderColor = cfg.slider_color || '#1B86EF';
+      const defaultSliderColor = this.anyColorToHex(cfg.slider_color) || '#1B86EF';
       const fanColor = this.getComplementaryColor(defaultSliderColor);
       this.shadowRoot.querySelectorAll('.fan-btn').forEach(btn => {
         const fm = btn.getAttribute('data-fan-mode');
@@ -832,17 +832,48 @@ class AirconControlCard extends HTMLElement {
     }
 
     // Update temperature display and mode in circle only if temperature, power state, or mode has changed
-    const tempKey = `${displayTemp}|${powerOn}|${currentMode}`;
-    if (this._lastStates.tempKey !== tempKey) {
-      const tempCircleContainer = this.shadowRoot.querySelector('.temp-circle-container');
-      tempCircleContainer.classList.toggle('glow', powerOn);
+    // Separate keys for each state section
+    const tempValueKey = `${displayTemp}`;
+    const powerKey = `${powerOn}`;
+    const modeKey = `${currentMode}`;
+    
+    // Update temperature display
+    if (this._lastStates.tempValueKey !== tempValueKey) {
       const tempValue = this.shadowRoot.querySelector('.temp-value');
-      tempValue.textContent = `${displayTemp.toFixed(1)}°C`;
-      const modeInCircle = this.shadowRoot.querySelector('.mode-in-circle');
-      modeInCircle.querySelector('ha-icon').setAttribute('icon', modeData[currentMode]?.icon || '');
-      modeInCircle.querySelector('span').textContent = modeData[currentMode]?.name || '';
-      this._lastStates.tempKey = tempKey;
+      if (tempValue) {
+        tempValue.textContent = `${displayTemp.toFixed(1)}°C`;
+      }
+      this._lastStates.tempValueKey = tempValueKey;
     }
+    
+    // Update power (glow effect)
+    if (this._lastStates.powerKey !== powerKey) {
+      const tempCircleContainer = this.shadowRoot.querySelector('.temp-circle-container');
+      if (tempCircleContainer) {
+        tempCircleContainer.classList.toggle('glow', powerOn);
+      }
+      this._lastStates.powerKey = powerKey;
+    }
+    
+    // Update mode icon, label, and color
+    if (this._lastStates.modeKey !== modeKey) {
+      const modeInCircle = this.shadowRoot.querySelector('.mode-in-circle');
+      const mode = modeData[currentMode] || {};
+    
+      if (modeInCircle) {
+        const iconEl = modeInCircle.querySelector('ha-icon');
+        const labelEl = modeInCircle.querySelector('span');
+    
+        if (iconEl) iconEl.setAttribute('icon', mode.icon || '');
+        if (labelEl) labelEl.textContent = mode.name || '';
+        if (mode.color) {
+          modeInCircle.style.setProperty('background-color', mode.color);
+        }
+      }
+    
+      this._lastStates.modeKey = modeKey;
+    }
+
 
     // Update room sliders only if their state or sensor has changed
     if (cfg.rooms && Array.isArray(cfg.rooms)) {
