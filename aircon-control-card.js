@@ -852,7 +852,7 @@ class AirconControlCard extends HTMLElement {
         }
         if (labelEl) {
           labelEl.textContent = mode.name || '';
-          labelEl.textContent = mode.color || '';
+          labelEl.style.color = mode.color || '';
         }
       }
     
