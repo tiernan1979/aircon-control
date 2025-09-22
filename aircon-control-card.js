@@ -15,7 +15,7 @@ class AirconControlCard extends HTMLElement {
         :host {
           font-family: 'Roboto', sans-serif;
           background: var(--card-background-color, #000);
-          color: var(--primary-text-color, white);
+          color: var(--text-color, white);
           border-radius: 12px;
           padding: 16px;
           display: block;
@@ -91,6 +91,7 @@ class AirconControlCard extends HTMLElement {
 
         .mode-name, .fan-name {
           font-size: 14px;
+          color: var(--text-color, white);         
         }
 
         .temp-setpoint-wrapper {
@@ -169,7 +170,6 @@ class AirconControlCard extends HTMLElement {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          color: white;
           font-size: 34px;
           font-weight: 600;
         }
@@ -226,7 +226,6 @@ class AirconControlCard extends HTMLElement {
         .temp-value {
           font-size: 30px;
           font-weight: 600;
-          color: white;
         }
 
         .mode-in-circle {
@@ -235,12 +234,10 @@ class AirconControlCard extends HTMLElement {
           align-items: center;
           gap: 6px;
           font-size: 18px;
-          color: var(--glow-color);
         }
 
         .sensor-line {
           font-size: 14px;
-          color: white;
           margin: 12px auto;
           text-align: center;
           display: flex;
@@ -258,17 +255,16 @@ class AirconControlCard extends HTMLElement {
 
         .sensor-line ha-icon {
           font-size: 16px;
-          color: var(--slider-base-color);
         }
 
         .sensor-line ha-icon[icon="mdi:home-outline"] {
-          color: var(--slider-base-color, #4fc3f7);
+          color: #4fc3f7;
         }
         .sensor-line ha-icon[icon="mdi:weather-sunny"] {
-          color: var(--slider-base-color, #ffca28);
+          color: #ffca28;
         }
         .sensor-line ha-icon[icon="mdi:solar-power"] {
-          color: var(--slider-base-color, #fbc02d);
+          color: #fbc02d;
         }
 
         .room-section {
@@ -327,7 +323,7 @@ class AirconControlCard extends HTMLElement {
           pointer-events: none;
           font-family: 'Georgia', 'Playfair Display', serif;
           font-size: 15px;
-          color: white;
+          color: var(--text-color, white);
         }
 
         .slider-name {
@@ -444,6 +440,15 @@ class AirconControlCard extends HTMLElement {
     return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
   }
 
+  function rgbToHex(rgb) {
+    const result = /^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/.exec(rgb);
+    if (!result) return rgb; // Return original if not in rgb format
+    const r = parseInt(result[1]).toString(16).padStart(2, '0');
+    const g = parseInt(result[2]).toString(16).padStart(2, '0');
+    const b = parseInt(result[3]).toString(16).padStart(2, '0');
+    return `#${r}${g}${b}`;
+  }
+  
   // Convert hex to rgba with specified opacity
   hexToRgba(hex, opacity) {
     const { r, g, b } = this.hexToRgb(hex);
@@ -477,6 +482,10 @@ class AirconControlCard extends HTMLElement {
     this.config = config;
     this.showModeNames = config.show_mode_names !== false;
 
+    // Default Text Color
+    const textColor = config.text_color || "white";
+    this.shadowRoot.host.style.setProperty('--text-color', textColor);
+    
     // Set default sphere colors if not provided
     const spherePrimary = config.sphere_primary_color || 'rgba(186,85,211, 0.3)';
     const sphereSecondary = config.sphere_secondary_color || 'rgba(255,105,180, 0.2)';
@@ -484,7 +493,8 @@ class AirconControlCard extends HTMLElement {
     this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
 
     // Set slider base color for sensor line and fan modes
-    const defaultSliderColor = config.slider_color || '#1B86EF';
+    const defaultSliderColor = rgbToHex(config.slider_color) || '#1B86EF';
+    
     this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
     this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor, 20), 0.2));
     this.shadowRoot.host.style.setProperty('--slider-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor, -20), 0.2));
