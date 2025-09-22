@@ -802,8 +802,11 @@ class AirconControlCard extends HTMLElement {
         const sel = currentFanMode && currentFanMode.toLowerCase() === fm.toLowerCase();
         btn.classList.toggle('fan-selected', sel);
         btn.style.Color = sel ? fanColor : '#ccc';
-        btn.style.boxShadow = sel ? 'inset 2px 2px 5px rgba(0, 0, 0, 0.3)' : '2px 2px 5px rgba(0, 0, 0, 0.2)';
-        btn.style.transform = sel ? 'translateY(2px)' : 'translateY(0)';
+        const container = btn.closest('.fan-btn-container');
+        if (container) {
+          container.style.transform = sel ? 'scale(0.95)' : 'scale(1)';
+          container.style.transition = 'transform 0.1s ease-in-out';
+        }
       });
       this._lastStates.currentFanMode = currentFanMode;
     }
