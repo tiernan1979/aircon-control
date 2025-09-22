@@ -54,15 +54,16 @@ resources:
 |-----------------------|-----------|----------|----------------------------------------------------------------|
 | `type`                | string    | Yes      | The card type, always `"custom:aircon-control-card"`           |
 | `entity`              | string    | Yes      | The main climate entity ID (e.g., `climate.living_room_ac`)     |
-| `show_mode_names`     | boolean   | No       | Whether to show HVAC mode names alongside icons                 |
+| `show_mode_names`     | boolean   | No       | Whether to show HVAC mode names alongside icons   Default: true              |
+| `sphere_primary_color` | string/rgb| No       | The sphere primary color       Default purple                  |
+| `sphere_secondary_color` | string/rgb| No       | The sphere secondary color   Default: black                   |
+| `text_color`          | string    | No   | Text color of sliders/sensors/menu's etc Default white|
+| `slider_color`        | hex    | No       | Default named color for sliders if not specified per room HEX Code only ie #ffffff   |
 | `rooms`               | array     | No       | List of room slider configurations                              |
-| `sphere_primary_color` | string/rgb| No       | The sphere primary color                                       |
-| `sphere_secondary_color` | string/rgb| No       | The sphere secondary color                                       |
-| `slider_color`        | string    | No       | Default named color for sliders if not specified per room         |
 | &nbsp;&nbsp;`name`          | string    | Yes (per room) | Name displayed for each room slider                             |
 | &nbsp;&nbsp;`slider_entity` | string    | Yes (per room) | Entity ID for the cover or vent slider                          |
 | &nbsp;&nbsp;`sensor_entity` | string    | No       | Optional temperature or other sensor entity for the room        |
-| &nbsp;&nbsp;`color`          | string    | No       | named color code for the slider and UI elements in the room      |
+| &nbsp;&nbsp;`color`          | hex    | No       | named color code for the slider and UI elements in the room HEX Code only ie #ffffff     |
 | `solar_sensor`        | string    | No       | Sensor entity for solar power                                   |
 | `house_temp_sensor`   | string    | No       | Sensor entity for house temperature                             |
 | `house_humidity_sensor`| string   | No       | Sensor entity for house humidity                                |
@@ -85,7 +86,9 @@ resources:
 type: 'custom:aircon-control-card'
 entity: climate.living_room_ac
 show_mode_names: true
-
+sphere_primary_color: blue
+sphere_secondary_color: black
+slider_color: "#1B86EF"
 rooms:
   - name: "Living Room Vent"
     slider_entity: cover.living_room_vent
@@ -102,7 +105,7 @@ house_humidity_sensor: sensor.house_humidity
 outside_temp_sensor: sensor.outside_temperature
 outside_humidity_sensor: sensor.outside_humidity
 
-slider_color: "#1B86EF"
+
 ```
 
 ### License
