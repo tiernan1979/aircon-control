@@ -592,7 +592,7 @@ class AirconControlCard extends HTMLElement {
               min="0" max="100" step="5"
               value="0"
               data-entity="${room.slider_entity}"
-              data-temp-entity="${room.temp_entity || ''}" <!-- THIS IS IMPORTANT -->
+              data-temp-entity="${room.temp_entity || ''}"
               style="--gradient-dark:${darkColor}; --gradient-start:${primaryColor}; --light-gradient-end:${lightColor}; --percent:0%;"
             />
             <div class="slider-info">
