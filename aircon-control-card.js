@@ -594,7 +594,7 @@ class AirconControlCard extends HTMLElement {
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-temp clickable-room"></span>
+              <span class="slider-temp clickable-room" data-entity="${room.temp_entity || ''}"></span>
               <span class="slider-status">0%</span>
             </div>
           </div>`;
