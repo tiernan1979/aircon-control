@@ -325,6 +325,7 @@ class AirconControlCard extends HTMLElement {
           font-family: 'Georgia', 'Playfair Display', serif;
           font-size: 15px;
           color: var(--text-color, white);
+          z-index: 2;          
         }
 
         .slider-name {
@@ -343,7 +344,6 @@ class AirconControlCard extends HTMLElement {
           display: flex;
           justify-content: center;
           align-items: center;
-          z-index: 2;
         }
       </style>
       <div class="modes"></div>
@@ -603,20 +603,7 @@ class AirconControlCard extends HTMLElement {
       });
       roomSection.innerHTML = roomControls;
 
-      // After roomControls is inserted into the DOM:
-      this.shadowRoot.querySelectorAll('.clickable-room').forEach(el => {
-        el.style.cursor = 'pointer';
-        el.addEventListener('click', (e) => {
-          const entityId = el.dataset.entity;
-          const moreInfoEvent = new Event("hass-more-info", {
-            bubbles: true,
-            composed: true,
-          });
-          moreInfoEvent.detail = { entityId };
-          el.dispatchEvent(moreInfoEvent);
-        });
-      });
-      
+     
       this.shadowRoot.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
         const entityId = slider.getAttribute('data-entity');
         this._sliderDragging[entityId] = false;
@@ -644,6 +631,20 @@ class AirconControlCard extends HTMLElement {
           if (statusEl) {
             statusEl.textContent = `${val}%`;
           }
+        });
+        
+        // After roomControls is inserted into the DOM:
+        this.shadowRoot.querySelectorAll('.clickable-room').forEach(el => {
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', (e) => {
+            const entityId = el.dataset.entity;
+            const moreInfoEvent = new Event("hass-more-info", {
+              bubbles: true,
+              composed: true,
+            });
+            moreInfoEvent.detail = { entityId };
+            el.dispatchEvent(moreInfoEvent);
+          });
         });
 
         newSlider.addEventListener('change', e => {
