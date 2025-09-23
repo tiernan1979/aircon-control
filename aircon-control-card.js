@@ -585,19 +585,19 @@ class AirconControlCard extends HTMLElement {
         const darkColor = this.hexToRgba(this.shadeColor(sliderColor, -40), 0.3); // Darker shade, 30% opacity
         const lightColor = this.hexToRgba(this.shadeColor(sliderColor, 50), 0.1); // Light shade, 10% opacity
         roomControls += `
-          <div class="room-block" data-entity="${room.slider_entity}" data-temp-entity="${room.temp_entity || ''}">
+          <div class="room-block" data-entity="${room.slider_entity}" data-temp-entity="${room.sensor_entity || ''}">
             <input
               type="range"
               class="styled-room-slider no-thumb"
               min="0" max="100" step="5"
               value="0"
               data-entity="${room.slider_entity}"
-              data-temp-entity="${room.temp_entity || ''}"
+              data-temp-entity="${room.sensor_entity || ''}"
               style="--gradient-dark:${darkColor}; --gradient-start:${primaryColor}; --light-gradient-end:${lightColor}; --percent:0%;"
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-temp clickable-room" data-entity="${room.temp_entity || ''}">--°</span>
+              <span class="slider-temp clickable-room" data-entity="${room.sensor_entity || ''}">--°</span>
               <span class="slider-status">0%</span>
             </div>
           </div>`;
