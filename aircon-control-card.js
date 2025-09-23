@@ -604,49 +604,45 @@ class AirconControlCard extends HTMLElement {
       roomSection.innerHTML = roomControls;
 
      
-      this.shadowRoot.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
+      // Now get all room blocks and add listeners properly
+      const roomBlocks = this.shadowRoot.querySelectorAll('.room-block');
+    
+      roomBlocks.forEach(roomBlock => {
+        const slider = roomBlock.querySelector('.styled-room-slider.no-thumb');
+        if (!slider) return;
+    
         const entityId = slider.getAttribute('data-entity');
+        const tempEntityId = slider.getAttribute('data-temp-entity');
+    
         this._sliderDragging[entityId] = false;
-
+    
+        // Replace slider with clone to reset listeners
         const newSlider = slider.cloneNode(true);
         slider.parentNode.replaceChild(newSlider, slider);
-
+    
+        // Pointer drag tracking
         newSlider.addEventListener('pointerdown', () => {
           this._sliderDragging[entityId] = true;
         });
-
         newSlider.addEventListener('pointerup', () => {
           this._sliderDragging[entityId] = false;
         });
-
         newSlider.addEventListener('pointercancel', () => {
           this._sliderDragging[entityId] = false;
         });
-
+    
+        // Update slider UI on input
         newSlider.addEventListener('input', e => {
           const val = Number(e.target.value);
           this._localSliderValues[entityId] = val;
           e.target.style.setProperty('--percent', `${val}%`);
-          const statusEl = e.target.parentElement.querySelector('.slider-status');
+          const statusEl = newSlider.parentElement.querySelector('.slider-status');
           if (statusEl) {
             statusEl.textContent = `${val}%`;
           }
         });
-        
-        // After roomControls is inserted into the DOM:
-        this.shadowRoot.querySelectorAll('.clickable-room').forEach(el => {
-          el.style.cursor = 'pointer';
-          el.addEventListener('click', (e) => {
-            const entityId = el.dataset.entity;
-            const moreInfoEvent = new Event("hass-more-info", {
-              bubbles: true,
-              composed: true,
-            });
-            moreInfoEvent.detail = { entityId };
-            el.dispatchEvent(moreInfoEvent);
-          });
-        });
-
+    
+        // Send service call on change (on release)
         newSlider.addEventListener('change', e => {
           const val = Number(e.target.value);
           this._localSliderValues[entityId] = undefined;
@@ -656,6 +652,32 @@ class AirconControlCard extends HTMLElement {
               position: val,
             });
           }
+        });
+    
+        // Optional: double-click slider to open temp info (or fallback)
+        newSlider.addEventListener('dblclick', () => {
+          const entityToShow = tempEntityId && tempEntityId !== '' ? tempEntityId : entityId;
+          const moreInfoEvent = new Event('hass-more-info', {
+            bubbles: true,
+            composed: true,
+          });
+          moreInfoEvent.detail = { entityId: entityToShow };
+          newSlider.dispatchEvent(moreInfoEvent);
+        });
+    
+        // Add click listener to temperature span (and any other clickable-room inside this roomBlock)
+        roomBlock.querySelectorAll('.clickable-room').forEach(el => {
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', () => {
+            const entityId = el.dataset.entity;
+            if (!entityId) return;
+            const moreInfoEvent = new Event('hass-more-info', {
+              bubbles: true,
+              composed: true,
+            });
+            moreInfoEvent.detail = { entityId };
+            el.dispatchEvent(moreInfoEvent);
+          });
         });
       });
     } else {
