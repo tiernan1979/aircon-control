@@ -594,13 +594,27 @@ class AirconControlCard extends HTMLElement {
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-temp"></span>
+              <span class="slider-temp clickable-room"></span>
               <span class="slider-status">0%</span>
             </div>
           </div>`;
       });
       roomSection.innerHTML = roomControls;
 
+      // After roomControls is inserted into the DOM:
+      this.shadowRoot.querySelectorAll('.clickable-room').forEach(el => {
+        el.style.cursor = 'pointer';
+        el.addEventListener('click', (e) => {
+          const entityId = el.dataset.entity;
+          const moreInfoEvent = new Event("hass-more-info", {
+            bubbles: true,
+            composed: true,
+          });
+          moreInfoEvent.detail = { entityId };
+          el.dispatchEvent(moreInfoEvent);
+        });
+      });
+      
       this.shadowRoot.querySelectorAll('.styled-room-slider.no-thumb').forEach(slider => {
         const entityId = slider.getAttribute('data-entity');
         this._sliderDragging[entityId] = false;
@@ -748,7 +762,7 @@ class AirconControlCard extends HTMLElement {
     const sensorHouseHum = cfg.house_humidity_sensor ? getState(cfg.house_humidity_sensor) : null;
     const sensorOutsideTemp = cfg.outside_temp_sensor ? getState(cfg.outside_temp_sensor) : null;
     const sensorOutsideHum = cfg.outside_humidity_sensor ? getState(cfg.outside_humidity_sensor) : null;
-
+    
     const sensorKey = `${sensorSolar}|${sensorHouseTemp}|${sensorHouseHum}|${sensorOutsideTemp}|${sensorOutsideHum}`;
     if (this._lastStates.sensorKey !== sensorKey) {
       const sensorLine = this.shadowRoot.querySelector('.sensor-line');
@@ -760,25 +774,54 @@ class AirconControlCard extends HTMLElement {
         sensorOutsideHum !== null
       ) {
         const parts = [];
+    
         if (sensorHouseTemp !== null || sensorHouseHum !== null) {
-          const temp = sensorHouseTemp !== null ? `${sensorHouseTemp}°C` : '';
-          const hum = sensorHouseHum !== null ? `${sensorHouseHum}%` : '';
-          parts.push(`<ha-icon icon="mdi:home-outline"></ha-icon> ${temp}${temp && hum ? ' / ' : ''}${hum}`);
+          const tempSpan = sensorHouseTemp !== null
+            ? `<span class="clickable-sensor" data-entity="${cfg.house_temp_sensor}">${sensorHouseTemp}°C</span>`
+            : '';
+          const humSpan = sensorHouseHum !== null
+            ? `<span class="clickable-sensor" data-entity="${cfg.house_humidity_sensor}">${sensorHouseHum}%</span>`
+            : '';
+          parts.push(`<ha-icon icon="mdi:home-outline"></ha-icon> ${tempSpan}${tempSpan && humSpan ? ' / ' : ''}${humSpan}`);
         }
+    
         if (sensorOutsideTemp !== null || sensorOutsideHum !== null) {
-          const temp = sensorOutsideTemp !== null ? `${sensorOutsideTemp}°C` : '';
-          const hum = sensorOutsideHum !== null ? `${sensorOutsideHum}%` : '';
-          parts.push(`<ha-icon icon="mdi:weather-sunny"></ha-icon> ${temp}${temp && hum ? ' / ' : ''}${hum}`);
+          const tempSpan = sensorOutsideTemp !== null
+            ? `<span class="clickable-sensor" data-entity="${cfg.outside_temp_sensor}">${sensorOutsideTemp}°C</span>`
+            : '';
+          const humSpan = sensorOutsideHum !== null
+            ? `<span class="clickable-sensor" data-entity="${cfg.outside_humidity_sensor}">${sensorOutsideHum}%</span>`
+            : '';
+          parts.push(`<ha-icon icon="mdi:weather-sunny"></ha-icon> ${tempSpan}${tempSpan && humSpan ? ' / ' : ''}${humSpan}`);
         }
+    
         if (sensorSolar !== null) {
-          parts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> ${sensorSolar}`);
+          parts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> <span class="clickable-sensor" data-entity="${cfg.solar_sensor}">${sensorSolar}</span>`);
         }
+    
         sensorLine.innerHTML = parts.join(' | ');
+    
+        // Add event listeners to each clickable sensor element
+        sensorLine.querySelectorAll('.clickable-sensor').forEach(el => {
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', () => {
+            const entityId = el.dataset.entity;
+            const moreInfoEvent = new Event('hass-more-info', {
+              bubbles: true,
+              composed: true,
+            });
+            moreInfoEvent.detail = { entityId };
+            el.dispatchEvent(moreInfoEvent);
+          });
+        });
+    
       } else {
         sensorLine.innerHTML = '';
       }
+    
       this._lastStates.sensorKey = sensorKey;
     }
+
 
     // Update mode buttons only if mode has changed
     if (this._lastStates.currentMode !== currentMode) {
