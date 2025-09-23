@@ -597,7 +597,7 @@ class AirconControlCard extends HTMLElement {
             />
             <div class="slider-info">
               <span class="slider-name">${room.name}</span>
-              <span class="slider-temp clickable-room" data-entity="${room.sensor_entity || ''}">--°</span>
+              <span class="slider-temp" data-entity="${room.sensor_entity || ''}">--°</span>
               <span class="slider-status">0%</span>
             </div>
           </div>`;
@@ -654,33 +654,7 @@ class AirconControlCard extends HTMLElement {
               position: val,
             });
           }
-        });
-    
-        // Optional: double-click slider to open temp info (or fallback)
-        newSlider.addEventListener('dblclick', () => {
-          const entityToShow = tempEntityId && tempEntityId !== '' ? tempEntityId : entityId;
-          const moreInfoEvent = new Event('hass-more-info', {
-            bubbles: true,
-            composed: true,
-          });
-          moreInfoEvent.detail = { entityId: entityToShow };
-          newSlider.dispatchEvent(moreInfoEvent);
-        });
-    
-        // Add click listener to temperature span (and any other clickable-room inside this roomBlock)
-        roomBlock.querySelectorAll('.clickable-room').forEach(el => {
-          el.style.cursor = 'pointer';
-          el.addEventListener('click', () => {
-            const entityId = el.dataset.entity;
-            if (!entityId) return;
-            const moreInfoEvent = new Event('hass-more-info', {
-              bubbles: true,
-              composed: true,
-            });
-            moreInfoEvent.detail = { entityId };
-            el.dispatchEvent(moreInfoEvent);
-          });
-        });
+        });  
       });
     } else {
       roomSection.innerHTML = '';
