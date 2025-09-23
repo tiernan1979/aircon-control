@@ -295,6 +295,7 @@ class AirconControlCard extends HTMLElement {
             var(--gradient-start) var(--percent),
             var(--light-gradient-end) var(--percent)
           );
+          z-index: 1;
         }
 
         .styled-room-slider.no-thumb::-webkit-slider-thumb {
@@ -342,6 +343,7 @@ class AirconControlCard extends HTMLElement {
           display: flex;
           justify-content: center;
           align-items: center;
+          z-index: 2;
         }
       </style>
       <div class="modes"></div>
