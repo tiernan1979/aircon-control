@@ -20,32 +20,57 @@ class AirconControlCard extends HTMLElement {
           user-select: none;
           transition: background-color 0.3s ease;
         }
-        .modes { /* unchanged */ }
+
+        /* ---------- MODE & FAN BUTTONS ---------- */
+        .modes {
+          display: flex; justify-content: center; align-items: center; gap: 12px;
+          margin-bottom: 12px;
+          background:
+            linear-gradient(145deg, rgba(255,255,255,0.1), rgba(0,0,0,0.3)),
+            radial-gradient(circle at 60% 60%, var(--sphere-secondary, rgba(255,105,180, 0.2)), transparent 70%),
+            radial-gradient(circle at 30% 30%, var(--sphere-primary, rgba(186,85,211, 0.3)), transparent 70%),
+            radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
+          border-radius: 50px; padding: 10px;
+          box-shadow:
+            inset 0 8px 12px rgba(255,255,255,0.15),
+            inset 0 -8px 12px rgba(0,0,0,0.9),
+            0 3px 6px rgba(0,0,0,0.4);
+          width: fit-content; margin: 0 auto 12px;
+        }
         .fan-modes { display:flex; justify-content:center; align-items:center; gap:12px; margin-bottom:12px; }
-        .fan-btn-container { background: linear-gradient(145deg,var(--fan-base-color-light),var(--fan-base-color-dark));
+        .fan-btn-container {
+          background: linear-gradient(145deg,var(--fan-base-color-light),var(--fan-base-color-dark));
           border-radius:6px; padding:4px 8px;
-          box-shadow:0 2px 4px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.1); }
-        .mode-btn,.fan-btn{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+          box-shadow:0 2px 4px rgba(0,0,0,0.3), inset 0 1px 2px rgba(255,255,255,0.1);
+        }
+        .mode-btn,.fan-btn{
+          display:flex; flex-direction:column; align-items:center; justify-content:center;
           gap:4px; cursor:pointer; background:transparent; border:none; outline:none;
-          color:#ccc; transition:color .3s,transform .2s; font-size:14px; }
+          color:#ccc; transition:color .3s,transform .2s; font-size:14px;
+        }
         .mode-btn:hover,.fan-btn:hover{transform:scale(1.1);}
         .mode-btn.mode-selected,.fan-btn.fan-selected{color:var(--glow-color);}
         .mode-btn ha-icon,.fan-btn ha-icon{font-size:26px;}
         .mode-name,.fan-name{font-size:14px;color:var(--text-color,white);}
 
+        /* ---------- SETPOINT ---------- */
         .temp-setpoint-wrapper{display:flex;justify-content:center;align-items:center;gap:12px;margin-bottom:16px;}
-        .setpoint-button{ width:40px;height:40px;
+        .setpoint-button{
+          width:40px;height:40px;
           background:linear-gradient(145deg,var(--button-color),var(--button-color-dark));
           border-radius:50%;font-size:28px;color:white;
           display:flex;align-items:center;justify-content:center;cursor:pointer;
           border:1px solid #444;
           box-shadow:0 2px 4px rgba(0,0,0,0.4),inset 0 1px 2px rgba(255,255,255,0.1);
-          transition:background .3s,box-shadow .3s,transform .2s; }
+          transition:background .3s,box-shadow .3s,transform .2s;
+        }
         .setpoint-button:hover{
           background:linear-gradient(145deg,var(--glow-color),var(--button-color-dark));
           box-shadow:0 0 8px var(--glow-color),0 2px 4px rgba(0,0,0,0.4);
-          transform:scale(1.1); }
+          transform:scale(1.1);
+        }
 
+        /* ---------- CIRCLE ---------- */
         .temp-circle-container{position:relative;width:140px;height:140px;margin:0 16px;}
         .temp-circle-container.glow .glow-bottom{opacity:.8;animation:halfGlowPulse 12s infinite ease-in-out;}
         .glow-bottom{
@@ -53,7 +78,8 @@ class AirconControlCard extends HTMLElement {
           width:140px;height:70px;background:var(--glow-color);
           border-radius:0 0 70px 70px / 0 0 70px 70px;
           filter:blur(10px);opacity:.4;pointer-events:none;
-          transition:opacity .5s ease;animation:none;z-index:0; }
+          transition:opacity .5s ease;animation:none;z-index:0;
+        }
         .temp-circle{
           position:relative;z-index:1;width:140px;height:140px;
           border-radius:50%;
@@ -63,36 +89,43 @@ class AirconControlCard extends HTMLElement {
             radial-gradient(circle at center, #0a0a0a 40%, #000000 100%);
           box-shadow:inset 0 10px 15px rgba(255,255,255,0.1),inset 0 -10px 15px rgba(0,0,0,0.8);
           display:flex;flex-direction:column;align-items:center;justify-content:center;
-          font-size:34px;font-weight:600; }
+          font-size:34px;font-weight:600;
+        }
         .temp-circle::before{
           content:'';position:absolute;top:18px;left:20px;width:48px;height:28px;
           background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 70%);
-          border-radius:50%;filter:blur(2px);pointer-events:none;z-index:2; }
+          border-radius:50%;filter:blur(2px);pointer-events:none;z-index:2;
+        }
         .temp-circle::after{
           content:'';position:absolute;top:50px;left:80px;width:30px;height:15px;
           background:radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4), transparent 70%);
-          border-radius:50%;filter:blur(1.5px);pointer-events:none;z-index:2; }
+          border-radius:50%;filter:blur(1.5px);pointer-events:none;z-index:2;
+        }
         .temp-circle .reflection{
           position:absolute;top:30px;left:50px;width:40px;height:40px;
           background:radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), transparent 70%);
-          border-radius:50%;pointer-events:none;filter:blur(6px); }
+          border-radius:50%;pointer-events:none;filter:blur(6px);
+        }
         @keyframes halfGlowPulse{0%,100%{opacity:0.4;}50%{opacity:0.8;}}
         .temp-value{font-size:30px;font-weight:600;}
         .mode-in-circle{margin-top:6px;display:flex;align-items:center;gap:6px;font-size:18px;}
 
+        /* ---------- SENSOR LINE ---------- */
         .sensor-line{
           font-size:14px;margin:12px auto;text-align:center;
           display:flex;justify-content:center;align-items:center;gap:8px;
           background:linear-gradient(145deg,var(--slider-base-color-light),var(--slider-base-color-dark));
           border-radius:6px;padding:4px 8px;
           box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 2px rgba(255,255,255,0.1);
-          width:fit-content; }
+          width:fit-content;
+        }
         .sensor-line ha-icon{font-size:16px;}
         .sensor-line ha-icon[icon="mdi:home-outline"]{color:#4fc3f7;}
         .sensor-line ha-icon[icon="mdi:weather-sunny"]{color:#ffca28;}
         .sensor-line ha-icon[icon="mdi:solar-power"]{color:#fbc02d;}
         .clickable-sensor{cursor:pointer;text-decoration:none;color:inherit;}
 
+        /* ---------- ROOM SLIDERS ---------- */
         .room-section{margin-top:12px;display:flex;flex-direction:column;gap:2px;}
         .room-block{position:relative;width:100%;}
         .styled-room-slider{
@@ -169,63 +202,63 @@ class AirconControlCard extends HTMLElement {
      CONFIG
   ------------------------------------------------- */
   setConfig(config){
-    if(!config.entity)throw new Error('You need to define an entity');
-    this.config=config;
-    this.showModeNames=config.show_mode_names!==false;
-    this.viewMode=config.view_mode||"full";
+    if(!config.entity) throw new Error('You need to define an entity');
+    this.config = config;
+    this.showModeNames = config.show_mode_names !== false;
+    this.viewMode = config.view_mode || "full";
 
     this.shadowRoot.host.classList.remove('view-full','view-sliders','view-aircon');
     this.shadowRoot.host.classList.add(`view-${this.viewMode}`);
 
-    const textColor=config.text_color||"white";
-    this.shadowRoot.host.style.setProperty('--text-color',textColor);
+    const textColor = config.text_color || "white";
+    this.shadowRoot.host.style.setProperty('--text-color', textColor);
 
-    const spherePrimary=config.sphere_primary_color||'rgba(186,85,211,0.3)';
-    const sphereSecondary=config.sphere_secondary_color||'rgba(255,105,180,0.2)';
-    this.shadowRoot.host.style.setProperty('--sphere-primary',spherePrimary);
-    this.shadowRoot.host.style.setProperty('--sphere-secondary',sphereSecondary);
+    const spherePrimary = config.sphere_primary_color || 'rgba(186,85,211,0.3)';
+    const sphereSecondary = config.sphere_secondary_color || 'rgba(255,105,180,0.2)';
+    this.shadowRoot.host.style.setProperty('--sphere-primary', spherePrimary);
+    this.shadowRoot.host.style.setProperty('--sphere-secondary', sphereSecondary);
 
-    const defaultSliderColor=config.slider_color||'#1B86EF';
-    this.shadowRoot.host.style.setProperty('--slider-base-color',defaultSliderColor);
-    this.shadowRoot.host.style.setProperty('--slider-base-color-light',this.hexToRgba(this.shadeColor(defaultSliderColor,20),0.2));
-    this.shadowRoot.host.style.setProperty('--slider-base-color-dark',this.hexToRgba(this.shadeColor(defaultSliderColor,-20),0.2));
-    this.shadowRoot.host.style.setProperty('--fan-base-color',this.shadeColor(defaultSliderColor,-25));
-    this.shadowRoot.host.style.setProperty('--fan-base-color-light',this.hexToRgba(this.shadeColor(defaultSliderColor,-10),0.2));
-    this.shadowRoot.host.style.setProperty('--fan-base-color-dark',this.hexToRgba(this.shadeColor(defaultSliderColor,-30),0.3));
+    const defaultSliderColor = config.slider_color || '#1B86EF';
+    this.shadowRoot.host.style.setProperty('--slider-base-color', defaultSliderColor);
+    this.shadowRoot.host.style.setProperty('--slider-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor,20),0.2));
+    this.shadowRoot.host.style.setProperty('--slider-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor,-20),0.2));
+    this.shadowRoot.host.style.setProperty('--fan-base-color', this.shadeColor(defaultSliderColor,-25));
+    this.shadowRoot.host.style.setProperty('--fan-base-color-light', this.hexToRgba(this.shadeColor(defaultSliderColor,-10),0.2));
+    this.shadowRoot.host.style.setProperty('--fan-base-color-dark', this.hexToRgba(this.shadeColor(defaultSliderColor,-30),0.3));
 
-    const modeData={off:{icon:'mdi:power',color:'#D69E5E',name:'Off'},
-                    cool:{icon:'mdi:snowflake',color:'#2196F3',name:'Cool'},
-                    heat:{icon:'mdi:fire',color:'#F44336',name:'Heat'},
-                    fan_only:{icon:'mdi:fan',color:'#9E9E9E',name:'Fan'},
-                    dry:{icon:'mdi:water-percent',color:'#009688',name:'Dry'},
-                    auto:{icon:'mdi:autorenew',color:'#FFC107',name:'Auto'}};
+    const modeData = {off:{icon:'mdi:power',color:'#D69E5E',name:'Off'},
+                     cool:{icon:'mdi:snowflake',color:'#2196F3',name:'Cool'},
+                     heat:{icon:'mdi:fire',color:'#F44336',name:'Heat'},
+                     fan_only:{icon:'mdi:fan',color:'#9E9E9E',name:'Fan'},
+                     dry:{icon:'mdi:water-percent',color:'#009688',name:'Dry'},
+                     auto:{icon:'mdi:autorenew',color:'#FFC107',name:'Auto'}};
 
-    const modes=this.shadowRoot.querySelector('.modes');
-    let html='';Object.entries(modeData).forEach(([k,v])=>{
-      html+=`<button class="mode-btn" data-mode="${k}" style="color:#ccc">
-               <ha-icon icon="${v.icon}" style="color:#ccc"></ha-icon>
-               ${this.showModeNames?`<span class="mode-name">${v.name}</span>`:''}
-             </button>`;
-    });modes.innerHTML=html;
+    const modes = this.shadowRoot.querySelector('.modes');
+    let html = ''; Object.entries(modeData).forEach(([k,v])=>{
+      html += `<button class="mode-btn" data-mode="${k}" style="color:#ccc">
+                 <ha-icon icon="${v.icon}" style="color:#ccc"></ha-icon>
+                 ${this.showModeNames ? `<span class="mode-name">${v.name}</span>` : ''}
+               </button>`;
+    }); modes.innerHTML = html;
 
-    const fanModesCont=this.shadowRoot.querySelector('.fan-modes');
-    const fallback=['low','medium','high','auto'];
-    const fanModes=this._hass?.states[config.entity]?.attributes.fan_modes?.length>0
-                    ?this._hass.states[config.entity].attributes.fan_modes:fallback;
-    let fanHtml='';fanModes.forEach(f=>{fanHtml+=`<div class="fan-btn-container">
+    const fanModesCont = this.shadowRoot.querySelector('.fan-modes');
+    const fallback = ['low','medium','high','auto'];
+    const fanModes = this._hass?.states[config.entity]?.attributes.fan_modes?.length > 0
+                     ? this._hass.states[config.entity].attributes.fan_modes : fallback;
+    let fanHtml = ''; fanModes.forEach(f=>{ fanHtml += `<div class="fan-btn-container">
                                     <button class="fan-btn" data-fan-mode="${f}" style="color:#ccc">
                                       <span class="fan-name">${f.charAt(0).toUpperCase()+f.slice(1)}</span>
                                     </button>
-                                  </div>`;});
-    fanModesCont.innerHTML=fanHtml;
+                                  </div>`; });
+    fanModesCont.innerHTML = fanHtml;
 
-    const roomSec=this.shadowRoot.querySelector('.room-section');
-    if(config.rooms&&Array.isArray(config.rooms)){
-      let rhtml='';config.rooms.forEach(r=>{
-        const col=r.color??config.slider_color??'#1B86EF';
-        const prim=this.hexToRgba(col,0.7),dark=this.hexToRgba(this.shadeColor(col,-40),0.3),
-              light=this.hexToRgba(this.shadeColor(col,50),0.1);
-        rhtml+=`<div class="room-block" data-entity="${r.slider_entity}" data-temp-entity="${r.sensor_entity||''}">
+    const roomSec = this.shadowRoot.querySelector('.room-section');
+    if(config.rooms && Array.isArray(config.rooms)){
+      let rhtml = ''; config.rooms.forEach(r=>{
+        const col = r.color ?? config.slider_color ?? '#1B86EF';
+        const prim = this.hexToRgba(col,0.7), dark = this.hexToRgba(this.shadeColor(col,-40),0.3),
+              light = this.hexToRgba(this.shadeColor(col,50),0.1);
+        rhtml += `<div class="room-block" data-entity="${r.slider_entity}" data-temp-entity="${r.sensor_entity||''}">
                   <input type="range" class="styled-room-slider" min="0" max="100" step="5" value="0"
                          data-entity="${r.slider_entity}" data-temp-entity="${r.sensor_entity||''}"
                          style="--gradient-dark:${dark};--gradient-start:${prim};--light-gradient-end:${light};--percent:0%;">
@@ -235,44 +268,46 @@ class AirconControlCard extends HTMLElement {
                     <span class="slider-status">0%</span>
                   </div>
                 </div>`;
-      });roomSec.innerHTML=rhtml;
-    }else roomSec.innerHTML='';
+      }); roomSec.innerHTML = rhtml;
+    } else roomSec.innerHTML = '';
 
     this._attachListeners();
   }
 
   /* -------------------------------------------------
-     LISTENERS – full‑track click & drag
+     LISTENERS – full‑track click & drag + fixed top bar
   ------------------------------------------------- */
   _attachListeners(){
-    const cfg=this.config;
+    const cfg = this.config;
 
-    // Mode & fan buttons
-    this.shadowRoot.querySelectorAll('.mode-btn,.fan-btn').forEach(b=>{
-      const nb=b.cloneNode(true);b.parentNode.replaceChild(nb,b);
-      nb.addEventListener('click',()=>{
-        const isMode=nb.classList.contains('mode-btn');
-        const val=nb.getAttribute(isMode?'data-mode':'data-fan-mode');
-        if(!this._hass)return;
-        if(isMode&&val==='off')this._hass.callService('climate','turn_off',{entity_id:cfg.entity});
-        else if(isMode)this._hass.callService('climate','set_hvac_mode',{entity_id:cfg.entity,hvac_mode:val});
+    // ---------- MODE & FAN BUTTONS ----------
+    this.shadowRoot.querySelectorAll('.mode-btn,.fan-btn').forEach(b => {
+      const nb = b.cloneNode(true);
+      b.parentNode.replaceChild(nb, b);
+      nb.addEventListener('click', () => {
+        const isMode = nb.classList.contains('mode-btn');
+        const val = nb.getAttribute(isMode ? 'data-mode' : 'data-fan-mode');
+        if(!this._hass) return;
+        if(isMode && val === 'off') this._hass.callService('climate','turn_off',{entity_id:cfg.entity});
+        else if(isMode) this._hass.callService('climate','set_hvac_mode',{entity_id:cfg.entity,hvac_mode:val});
         else this._hass.callService('climate','set_fan_mode',{entity_id:cfg.entity,fan_mode:val});
       });
     });
 
-    // Room sliders – full track interaction
-    this.shadowRoot.querySelectorAll('.room-block').forEach(block=>{
-      const slider=block.querySelector('.styled-room-slider');
-      const tempEl=block.querySelector('.slider-temp');
-      const eid=slider.dataset.entity;
-      const tempEid=slider.dataset.tempEntity;
+    // ---------- ROOM SLIDERS ----------
+    this.shadowRoot.querySelectorAll('.room-block').forEach(block => {
+      const slider = block.querySelector('.styled-room-slider');
+      const tempEl = block.querySelector('.slider-temp');
+      const eid = slider.dataset.entity;
+      const tempEid = slider.dataset.tempEntity;
 
-      this._sliderDragging[eid]=false;
-      const ns=slider.cloneNode(true);slider.parentNode.replaceChild(ns,slider);
+      this._sliderDragging[eid] = false;
+      const ns = slider.cloneNode(true);
+      slider.parentNode.replaceChild(ns, slider);
 
-      // ---- Click anywhere on the track ----
+      // ---- Click anywhere ----
       ns.addEventListener('click', e => {
-        e.preventDefault();                 // stop native thumb‑jump
+        e.stopPropagation();
         const rect = ns.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const percent = Math.max(0, Math.min(1, x / rect.width));
@@ -282,9 +317,9 @@ class AirconControlCard extends HTMLElement {
         ns.dispatchEvent(new Event('change', { bubbles: true }));
       });
 
-      // ---- Drag from anywhere ----
+      // ---- Drag anywhere ----
       ns.addEventListener('pointerdown', e => {
-        e.preventDefault();                 // prevent native thumb
+        e.stopPropagation();
         this._sliderDragging[eid] = true;
         ns.setPointerCapture(e.pointerId);
 
@@ -310,7 +345,7 @@ class AirconControlCard extends HTMLElement {
         ns.addEventListener('pointercancel', up);
       });
 
-      // Input → UI update
+      // ---- Input → UI ----
       ns.addEventListener('input', e => {
         const v = +e.target.value;
         this._localSliderValues[eid] = v;
@@ -318,40 +353,40 @@ class AirconControlCard extends HTMLElement {
         block.querySelector('.slider-status').textContent = v + '%';
       });
 
-      // Change → send to HA
+      // ---- Change → HA ----
       ns.addEventListener('change', e => {
         const v = +e.target.value;
         this._localSliderValues[eid] = undefined;
         if(this._hass) this._hass.callService('cover','set_cover_position',{entity_id:eid,position:v});
       });
 
-      // Room‑temp more‑info
+      // ---- Temp more‑info ----
       if(tempEl && tempEid){
-        tempEl.style.cursor='pointer';
-        tempEl.addEventListener('click', ev=>{
+        tempEl.style.cursor = 'pointer';
+        tempEl.addEventListener('click', ev => {
           ev.stopPropagation();
-          const mi=new Event('hass-more-info',{bubbles:true,composed:true});
-          mi.detail={entityId:tempEid};
+          const mi = new Event('hass-more-info', { bubbles:true, composed:true });
+          mi.detail = { entityId: tempEid };
           tempEl.dispatchEvent(mi);
         });
       }
     });
 
-    // Setpoint buttons
+    // ---------- SETPOINT ----------
     if(!this._setpointListenersAdded){
       this.shadowRoot.getElementById('dec-setpoint')?.addEventListener('click',()=>this._adjustTemp(-1));
       this.shadowRoot.getElementById('inc-setpoint')?.addEventListener('click',()=>this._adjustTemp(1));
-      this._setpointListenersAdded=true;
+      this._setpointListenersAdded = true;
     }
   }
 
   _adjustTemp(delta){
-    if(!this._hass||!this.config)return;
-    const c=this._hass.states[this.config.entity];
-    const min=c.attributes.min_temp??16,max=c.attributes.max_temp??30;
-    const cur=this._localTemp??(c.attributes.temperature??min);
-    let nt=cur+delta;nt=Math.max(min,Math.min(max,nt));
-    this._localTemp=nt;
+    if(!this._hass||!this.config) return;
+    const c = this._hass.states[this.config.entity];
+    const min = c.attributes.min_temp ?? 16, max = c.attributes.max_temp ?? 30;
+    const cur = this._localTemp ?? (c.attributes.temperature ?? min);
+    let nt = cur + delta; nt = Math.max(min, Math.min(max, nt));
+    this._localTemp = nt;
     this._hass.callService('climate','set_temperature',{entity_id:this.config.entity,temperature:nt});
   }
 
@@ -359,160 +394,160 @@ class AirconControlCard extends HTMLElement {
      HASS UPDATE
   ------------------------------------------------- */
   set hass(hass){
-    this._hass=hass;
-    const cfg=this.config;
-    if(!cfg||!hass.states[cfg.entity]){
-      this.shadowRoot.innerHTML=`<hui-warning>${cfg?.entity||'Entity'} not available</hui-warning>`;
+    this._hass = hass;
+    const cfg = this.config;
+    if(!cfg || !hass.states[cfg.entity]){
+      this.shadowRoot.innerHTML = `<hui-warning>${cfg?.entity||'Entity'} not available</hui-warning>`;
       return;
     }
 
-    const cfgStr=JSON.stringify(cfg);
-    if(this._lastConfig!==cfgStr){this._lastConfig=cfgStr;this.setConfig(cfg);}
+    const cfgStr = JSON.stringify(cfg);
+    if(this._lastConfig !== cfgStr){ this._lastConfig = cfgStr; this.setConfig(cfg); }
 
-    const climate=hass.states[cfg.entity];
-    const minTemp=climate.attributes.min_temp??16;
-    const maxTemp=climate.attributes.max_temp??30;
-    const curTemp=climate.attributes.temperature??climate.attributes.current_temperature??minTemp;
+    const climate = hass.states[cfg.entity];
+    const minTemp = climate.attributes.min_temp ?? 16;
+    const maxTemp = climate.attributes.max_temp ?? 30;
+    const curTemp = climate.attributes.temperature ?? climate.attributes.current_temperature ?? minTemp;
 
-    if(this._localTemp!==null&&Math.abs(this._localTemp-curTemp)<0.1)this._localTemp=null;
-    const dispTemp=this._localTemp!==null?this._localTemp:curTemp;
+    if(this._localTemp !== null && Math.abs(this._localTemp - curTemp) < 0.1) this._localTemp = null;
+    const dispTemp = this._localTemp !== null ? this._localTemp : curTemp;
 
-    const curMode=climate.attributes.hvac_mode??climate.state;
-    const powerOn=climate.state!=='off';
-    const curFan=climate.attributes.fan_mode??null;
+    const curMode = climate.attributes.hvac_mode ?? climate.state;
+    const powerOn = climate.state !== 'off';
+    const curFan = climate.attributes.fan_mode ?? null;
 
-    const modeData={off:{icon:'mdi:power',color:'#D69E5E',name:'Off'},
-                    cool:{icon:'mdi:snowflake',color:'#2196F3',name:'Cool'},
-                    heat:{icon:'mdi:fire',color:'#F44336',name:'Heat'},
-                    fan_only:{icon:'mdi:fan',color:'#9E9E9E',name:'Fan'},
-                    dry:{icon:'mdi:water-percent',color:'#009688',name:'Dry'},
-                    auto:{icon:'mdi:autorenew',color:'#FFC107',name:'Auto'}};
+    const modeData = {off:{icon:'mdi:power',color:'#D69E5E',name:'Off'},
+                     cool:{icon:'mdi:snowflake',color:'#2196F3',name:'Cool'},
+                     heat:{icon:'mdi:fire',color:'#F44336',name:'Heat'},
+                     fan_only:{icon:'mdi:fan',color:'#9E9E9E',name:'Fan'},
+                     dry:{icon:'mdi:water-percent',color:'#009688',name:'Dry'},
+                     auto:{icon:'mdi:autorenew',color:'#FFC107',name:'Auto'}};
 
-    const glow=modeData[curMode]?.color??'#b37fed';
-    if(this._lastStates.glowColor!==glow){
-      this.shadowRoot.host.style.setProperty('--glow-color',glow);
-      this._lastStates.glowColor=glow;
+    const glow = modeData[curMode]?.color ?? '#b37fed';
+    if(this._lastStates.glowColor !== glow){
+      this.shadowRoot.host.style.setProperty('--glow-color', glow);
+      this._lastStates.glowColor = glow;
     }
 
-    const heat=curMode==='heat';
-    const decC=heat?'#F44336':'#2196F3',incC=heat?'#2196F3':'#F44336';
-    if(this._lastStates.decColor!==decC||this._lastStates.incColor!==incC){
-      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color',decC);
-      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color-dark',this.shadeColor(decC,-20));
-      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color',incC);
-      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color-dark',this.shadeColor(incC,-20));
-      this._lastStates.decColor=decC;this._lastStates.incColor=incC;
+    const heat = curMode === 'heat';
+    const decC = heat ? '#F44336' : '#2196F3', incC = heat ? '#2196F3' : '#F44336';
+    if(this._lastStates.decColor !== decC || this._lastStates.incColor !== incC){
+      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color', decC);
+      this.shadowRoot.querySelector('#dec-setpoint').style.setProperty('--button-color-dark', this.shadeColor(decC,-20));
+      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color', incC);
+      this.shadowRoot.querySelector('#inc-setpoint').style.setProperty('--button-color-dark', this.shadeColor(incC,-20));
+      this._lastStates.decColor = decC; this._lastStates.incColor = incC;
     }
 
-    const getS=id=>{const s=hass.states[id];return(!s||s.state==='unknown'||s.state==='unavailable')?null:s.state;};
+    const getS = id => { const s = hass.states[id]; return (!s||s.state==='unknown'||s.state==='unavailable')?null:s.state; };
 
-    const sSolar=cfg.solar_sensor?getS(cfg.solar_sensor):null;
-    const sHT=cfg.house_temp_sensor?getS(cfg.house_temp_sensor):null;
-    const sHH=cfg.house_humidity_sensor?getS(cfg.house_humidity_sensor):null;
-    const sOT=cfg.outside_temp_sensor?getS(cfg.outside_temp_sensor):null;
-    const sOH=cfg.outside_humidity_sensor?getS(cfg.outside_humidity_sensor):null;
-    const sk=`${sSolar}|${sHT}|${sHH}|${sOT}|${sOH}`;
-    if(this._lastStates.sensorKey!==sk){
-      const line=this.shadowRoot.querySelector('.sensor-line');
-      const parts=[];
+    const sSolar = cfg.solar_sensor ? getS(cfg.solar_sensor) : null;
+    const sHT = cfg.house_temp_sensor ? getS(cfg.house_temp_sensor) : null;
+    const sHH = cfg.house_humidity_sensor ? getS(cfg.house_humidity_sensor) : null;
+    const sOT = cfg.outside_temp_sensor ? getS(cfg.outside_temp_sensor) : null;
+    const sOH = cfg.outside_humidity_sensor ? getS(cfg.outside_humidity_sensor) : null;
+    const sk = `${sSolar}|${sHT}|${sHH}|${sOT}|${sOH}`;
+    if(this._lastStates.sensorKey !== sk){
+      const line = this.shadowRoot.querySelector('.sensor-line');
+      const parts = [];
       if(sHT!==null||sHH!==null){
-        const t=sHT!==null?`<span class="clickable-sensor" data-entity="${cfg.house_temp_sensor}">${sHT}°C</span>`:'';
-        const h=sHH!==null?`<span class="clickable-sensor" data-entity="${cfg.house_humidity_sensor}">${sHH}%</span>`:'';
+        const t = sHT!==null ? `<span class="clickable-sensor" data-entity="${cfg.house_temp_sensor}">${sHT}°C</span>` : '';
+        const h = sHH!==null ? `<span class="clickable-sensor" data-entity="${cfg.house_humidity_sensor}">${sHH}%</span>` : '';
         parts.push(`<ha-icon icon="mdi:home-outline"></ha-icon> ${t}${t&&h?' / ':''}${h}`);
       }
       if(sOT!==null||sOH!==null){
-        const t=sOT!==null?`<span class="clickable-sensor" data-entity="${cfg.outside_temp_sensor}">${sOT}°C</span>`:'';
-        const h=sOH!==null?`<span class="clickable-sensor" data-entity="${cfg.outside_humidity_sensor}">${sOH}%</span>`:'';
+        const t = sOT!==null ? `<span class="clickable-sensor" data-entity="${cfg.outside_temp_sensor}">${sOT}°C</span>` : '';
+        const h = sOH!==null ? `<span class="clickable-sensor" data-entity="${cfg.outside_humidity_sensor}">${sOH}%</span>` : '';
         parts.push(`<ha-icon icon="mdi:weather-sunny"></ha-icon> ${t}${t&&h?' / ':''}${h}`);
       }
-      if(sSolar!==null)parts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> <span class="clickable-sensor" data-entity="${cfg.solar_sensor}">${sSolar}</span>`);
-      line.innerHTML=parts.length?parts.join(' | '):'';
+      if(sSolar!==null) parts.push(`<ha-icon icon="mdi:solar-power"></ha-icon> <span class="clickable-sensor" data-entity="${cfg.solar_sensor}">${sSolar}</span>`);
+      line.innerHTML = parts.length ? parts.join(' | ') : '';
       line.querySelectorAll('.clickable-sensor').forEach(el=>{
         el.style.cursor='pointer';
-        el.addEventListener('click',()=>{const ev=new Event('hass-more-info',{bubbles:true,composed:true});ev.detail={entityId:el.dataset.entity};el.dispatchEvent(ev);});
+        el.addEventListener('click',()=>{ const ev=new Event('hass-more-info',{bubbles:true,composed:true}); ev.detail={entityId:el.dataset.entity}; el.dispatchEvent(ev); });
       });
-      this._lastStates.sensorKey=sk;
+      this._lastStates.sensorKey = sk;
     }
 
-    if(this._lastStates.currentMode!==curMode){
+    if(this._lastStates.currentMode !== curMode){
       this.shadowRoot.querySelectorAll('.mode-btn').forEach(b=>{
-        const mk=b.dataset.mode;const sel=curMode===mk;
-        const col=sel?modeData[mk].color:'#ccc';
-        b.classList.toggle('mode-selected',sel);
-        b.style.color=col;b.querySelector('ha-icon').style.color=col;
+        const mk = b.dataset.mode; const sel = curMode===mk;
+        const col = sel ? modeData[mk].color : '#ccc';
+        b.classList.toggle('mode-selected', sel);
+        b.style.color = col; b.querySelector('ha-icon').style.color = col;
       });
-      this._lastStates.currentMode=curMode;
+      this._lastStates.currentMode = curMode;
     }
 
-    if(this._lastStates.currentFanMode!==curFan){
-      const defCol=cfg.slider_color||'#1B86EF';
+    if(this._lastStates.currentFanMode !== curFan){
+      const defCol = cfg.slider_color || '#1B86EF';
       this.shadowRoot.querySelectorAll('.fan-btn').forEach(b=>{
-        const fm=b.dataset.fanMode;const sel=curFan&&curFan.toLowerCase()===fm.toLowerCase();
-        b.classList.toggle('fan-selected',sel);
-        const cont=b.closest('.fan-btn-container');
+        const fm = b.dataset.fanMode; const sel = curFan && curFan.toLowerCase()===fm.toLowerCase();
+        b.classList.toggle('fan-selected', sel);
+        const cont = b.closest('.fan-btn-container');
         if(cont){
-          cont.style.background=sel?defCol:'linear-gradient(145deg,var(--fan-base-color-light),var(--fan-base-color-dark))';
-          cont.style.boxShadow=sel?'inset 0 3px 6px rgba(0,0,0,0.4),0 1px 2px rgba(255,255,255,0.2)'
-                                 :'0 2px 4px rgba(0,0,0,0.3),inset 0 1px 2px rgba(255,255,255,0.1)';
+          cont.style.background = sel ? defCol : 'linear-gradient(145deg,var(--fan-base-color-light),var(--fan-base-color-dark))';
+          cont.style.boxShadow = sel ? 'inset 0 3px 6px rgba(0,0,0,0.4),0 1px 2px rgba(255,255,255,0.2)'
+                                     : '0 2px 4px rgba(0,0,0,0.3),inset 0 1px 2px rgba(255,255,255,0.1)';
         }
       });
-      this._lastStates.currentFanMode=curFan;
+      this._lastStates.currentFanMode = curFan;
     }
 
-    const tempK=`${dispTemp}`;
-    if(this._lastStates.tempValueKey!==tempK){
-      const el=this.shadowRoot.querySelector('.temp-value');
-      if(el)el.textContent=`${dispTemp.toFixed(1)}°C`;
-      this._lastStates.tempValueKey=tempK;
+    const tempK = `${dispTemp}`;
+    if(this._lastStates.tempValueKey !== tempK){
+      const el = this.shadowRoot.querySelector('.temp-value');
+      if(el) el.textContent = `${dispTemp.toFixed(1)}°C`;
+      this._lastStates.tempValueKey = tempK;
     }
 
-    const powerK=`${powerOn}`;
-    if(this._lastStates.powerKey!==powerK){
-      this.shadowRoot.querySelector('.temp-circle-container').classList.toggle('glow',powerOn);
-      this._lastStates.powerKey=powerK;
+    const powerK = `${powerOn}`;
+    if(this._lastStates.powerKey !== powerK){
+      this.shadowRoot.querySelector('.temp-circle-container').classList.toggle('glow', powerOn);
+      this._lastStates.powerKey = powerK;
     }
 
-    const modeK=`${curMode}`;
-    if(this._lastStates.modeKey!==modeK){
-      const circ=this.shadowRoot.querySelector('.mode-in-circle');
-      const m=modeData[curMode]||{};
-      const ic=circ.querySelector('ha-icon'),lb=circ.querySelector('span');
-      if(ic){ic.setAttribute('icon',m.icon||'');ic.style.color=m.color||'';}
-      if(lb){lb.textContent=m.name||'';lb.style.color=m.color||'';}
-      this._lastStates.modeKey=modeK;
+    const modeK = `${curMode}`;
+    if(this._lastStates.modeKey !== modeK){
+      const circ = this.shadowRoot.querySelector('.mode-in-circle');
+      const m = modeData[curMode] || {};
+      const ic = circ.querySelector('ha-icon'), lb = circ.querySelector('span');
+      if(ic){ ic.setAttribute('icon', m.icon||''); ic.style.color = m.color||''; }
+      if(lb){ lb.textContent = m.name||''; lb.style.color = m.color||''; }
+      this._lastStates.modeKey = modeK;
     }
 
-    if(cfg.rooms&&Array.isArray(cfg.rooms)){
+    if(cfg.rooms && Array.isArray(cfg.rooms)){
       this.shadowRoot.querySelectorAll('.room-block').forEach(block=>{
-        const eid=block.dataset.entity;
-        const slider=block.querySelector('.styled-room-slider');
-        const ent=hass.states[eid];
-        const room=cfg.rooms.find(r=>r.slider_entity===eid);
-        const sens=room?hass.states[room.sensor_entity]:null;
+        const eid = block.dataset.entity;
+        const slider = block.querySelector('.styled-room-slider');
+        const ent = hass.states[eid];
+        const room = cfg.rooms.find(r=>r.slider_entity===eid);
+        const sens = room ? hass.states[room.sensor_entity] : null;
 
-        let val=0;
+        let val = 0;
         if(ent){
-          if(ent.attributes.current_position!=null)val=parseInt(ent.attributes.current_position)||0;
-          else if(!isNaN(Number(ent.state)))val=Number(ent.state);
+          if(ent.attributes.current_position != null) val = parseInt(ent.attributes.current_position) || 0;
+          else if(!isNaN(Number(ent.state))) val = Number(ent.state);
         }
-        val=Math.round(val/5)*5;val=Math.max(0,Math.min(100,val));
-        const sensVal=sens&&!isNaN(Number(sens.state))?Number(sens.state):null;
-        const key=`${val}|${sensVal}`;
+        val = Math.round(val/5)*5; val = Math.max(0, Math.min(100, val));
+        const sensVal = sens && !isNaN(Number(sens.state)) ? Number(sens.state) : null;
+        const key = `${val}|${sensVal}`;
 
-        if(this._lastStates[eid]!==key&&!this._sliderDragging[eid]){
-          const loc=this._localSliderValues[eid];
-          const disp=loc!==undefined?loc:val;
-          slider.value=disp;
-          slider.style.setProperty('--percent',disp+'%');
-          block.querySelector('.slider-status').textContent=disp+'%';
-          const tEl=block.querySelector('.slider-temp');
-          if(tEl)tEl.textContent=sensVal!==null?`${sensVal.toFixed(1)}°C`:'';
-          this._lastStates[eid]=key;
+        if(this._lastStates[eid] !== key && !this._sliderDragging[eid]){
+          const loc = this._localSliderValues[eid];
+          const disp = loc !== undefined ? loc : val;
+          slider.value = disp;
+          slider.style.setProperty('--percent', disp + '%');
+          block.querySelector('.slider-status').textContent = disp + '%';
+          const tEl = block.querySelector('.slider-temp');
+          if(tEl) tEl.textContent = sensVal !== null ? `${sensVal.toFixed(1)}°C` : '';
+          this._lastStates[eid] = key;
         }
       });
     }
   }
 
-  getCardSize(){return 6;}
+  getCardSize(){ return 6; }
 }
 customElements.define('aircon-control-card', AirconControlCard);
