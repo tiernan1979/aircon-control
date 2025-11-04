@@ -167,7 +167,6 @@ class AirconControlCard extends HTMLElement {
           );
           z-index:1;
         }
-        /* ---- THUMB (visible & draggable) ---- */
         .styled-room-slider::-webkit-slider-thumb {
           -webkit-appearance:none; width:24px; height:24px;
           background:var(--glow-color, #1B86EF); border-radius:50%;
@@ -189,7 +188,6 @@ class AirconControlCard extends HTMLElement {
         .slider-status { width:50px; text-align:right; }
         .slider-temp { width:50px; text-align:center; cursor:pointer; text-decoration:underline; }
 
-        /* ---- view_mode hiding ---- */
         .view-aircon .modes,
         .view-aircon .fan-modes,
         .view-aircon .temp-setpoint-wrapper,
@@ -546,7 +544,7 @@ class AirconControlCard extends HTMLElement {
       const m=modeData[curMode]||{};
       const ic=circ.querySelector('ha-icon'), lb=circ.querySelector('span');
       if(ic){ic.setAttribute('icon',m.icon||''); ic.style.color=m.color||'';}
-      if(lb){lb.textContent=m improbable||''; lb.style.color=m.color||'';}
+      if(lb){lb.textContent=m.name||''; lb.style.color=m.color||'';}   /* <-- FIXED LINE */
       this._lastStates.modeKey=modeK;
     }
 
