@@ -118,7 +118,9 @@ class AirconControlCard extends HTMLElement {
           border-radius:6px;padding:4px 8px;
           box-shadow:0 2px 4px rgba(0,0,0,0.3),inset 0 1px 2px rgba(255,255,255,0.1);
           width:fit-content;
+          transition:opacity .3s ease;
         }
+        .sensor-line.hidden{opacity:0;pointer-events:none;height:0;margin:0;padding:0;overflow:hidden;}
         .sensor-line ha-icon{font-size:16px;}
         .sensor-line ha-icon[icon="mdi:home-outline"]{color:#4fc3f7;}
         .sensor-line ha-icon[icon="mdi:weather-sunny"]{color:#ffca28;}
@@ -140,7 +142,6 @@ class AirconControlCard extends HTMLElement {
           );
           z-index:1;cursor:pointer;
         }
-        /* invisible thumb – full‑track interaction */
         .styled-room-slider::-webkit-slider-thumb{
           -webkit-appearance:none;width:0;height:0;opacity:0;
         }
@@ -161,11 +162,13 @@ class AirconControlCard extends HTMLElement {
           text-decoration:none;
         }
 
-        .view-aircon .modes,
-        .view-aircon .fan-modes,
-        .view-aircon .temp-setpoint-wrapper,
-        .view-aircon .sensor-line{display:none;}
-        .view-sliders .room-section{display:none;}
+        /* ---------- VIEW MODES ---------- */
+        :host([view-mode="aircon"]) .modes,
+        :host([view-mode="aircon"]) .fan-modes,
+        :host([view-mode="aircon"]) .temp-setpoint-wrapper,
+        :host([view-mode="aircon"]) .sensor-line { display:none; }
+
+        :host([view-mode="sliders"]) .room-section { display:none; }
       </style>
 
       <div class="modes"></div>
@@ -207,8 +210,8 @@ class AirconControlCard extends HTMLElement {
     this.showModeNames = config.show_mode_names !== false;
     this.viewMode = config.view_mode || "full";
 
-    this.shadowRoot.host.classList.remove('view-full','view-sliders','view-aircon');
-    this.shadowRoot.host.classList.add(`view-${this.viewMode}`);
+    // Apply view mode via attribute
+    this.shadowRoot.host.setAttribute('view-mode', this.viewMode);
 
     const textColor = config.text_color || "white";
     this.shadowRoot.host.style.setProperty('--text-color', textColor);
@@ -275,12 +278,12 @@ class AirconControlCard extends HTMLElement {
   }
 
   /* -------------------------------------------------
-     LISTENERS – full‑track click & drag + fixed top bar
+     LISTENERS – full‑track click & drag
   ------------------------------------------------- */
   _attachListeners(){
     const cfg = this.config;
 
-    // ---------- MODE & FAN BUTTONS ----------
+    // Mode & fan buttons
     this.shadowRoot.querySelectorAll('.mode-btn,.fan-btn').forEach(b => {
       const nb = b.cloneNode(true);
       b.parentNode.replaceChild(nb, b);
@@ -294,7 +297,7 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
-    // ---------- ROOM SLIDERS ----------
+    // Room sliders
     this.shadowRoot.querySelectorAll('.room-block').forEach(block => {
       const slider = block.querySelector('.styled-room-slider');
       const tempEl = block.querySelector('.slider-temp');
@@ -305,7 +308,6 @@ class AirconControlCard extends HTMLElement {
       const ns = slider.cloneNode(true);
       slider.parentNode.replaceChild(ns, slider);
 
-      // ---- Click anywhere ----
       ns.addEventListener('click', e => {
         e.stopPropagation();
         const rect = ns.getBoundingClientRect();
@@ -317,7 +319,6 @@ class AirconControlCard extends HTMLElement {
         ns.dispatchEvent(new Event('change', { bubbles: true }));
       });
 
-      // ---- Drag anywhere ----
       ns.addEventListener('pointerdown', e => {
         e.stopPropagation();
         this._sliderDragging[eid] = true;
@@ -345,7 +346,6 @@ class AirconControlCard extends HTMLElement {
         ns.addEventListener('pointercancel', up);
       });
 
-      // ---- Input → UI ----
       ns.addEventListener('input', e => {
         const v = +e.target.value;
         this._localSliderValues[eid] = v;
@@ -353,14 +353,12 @@ class AirconControlCard extends HTMLElement {
         block.querySelector('.slider-status').textContent = v + '%';
       });
 
-      // ---- Change → HA ----
       ns.addEventListener('change', e => {
         const v = +e.target.value;
         this._localSliderValues[eid] = undefined;
         if(this._hass) this._hass.callService('cover','set_cover_position',{entity_id:eid,position:v});
       });
 
-      // ---- Temp more‑info ----
       if(tempEl && tempEid){
         tempEl.style.cursor = 'pointer';
         tempEl.addEventListener('click', ev => {
@@ -372,7 +370,6 @@ class AirconControlCard extends HTMLElement {
       }
     });
 
-    // ---------- SETPOINT ----------
     if(!this._setpointListenersAdded){
       this.shadowRoot.getElementById('dec-setpoint')?.addEventListener('click',()=>this._adjustTemp(-1));
       this.shadowRoot.getElementById('inc-setpoint')?.addEventListener('click',()=>this._adjustTemp(1));
@@ -446,9 +443,15 @@ class AirconControlCard extends HTMLElement {
     const sHH = cfg.house_humidity_sensor ? getS(cfg.house_humidity_sensor) : null;
     const sOT = cfg.outside_temp_sensor ? getS(cfg.outside_temp_sensor) : null;
     const sOH = cfg.outside_humidity_sensor ? getS(cfg.outside_humidity_sensor) : null;
-    const sk = `${sSolar}|${sHT}|${sHH}|${sOT}|${sOH}`;
-    if(this._lastStates.sensorKey !== sk){
-      const line = this.shadowRoot.querySelector('.sensor-line');
+
+    const hasAnySensor = !!(cfg.house_temp_sensor || cfg.house_humidity_sensor || cfg.outside_temp_sensor || cfg.outside_humidity_sensor || cfg.solar_sensor);
+    const hasData = (sHT!==null || sHH!==null || sOT!==null || sOH!==null || sSolar!==null);
+
+    const line = this.shadowRoot.querySelector('.sensor-line');
+    if (!hasAnySensor || !hasData) {
+      line.classList.add('hidden');
+    } else {
+      line.classList.remove('hidden');
       const parts = [];
       if(sHT!==null||sHH!==null){
         const t = sHT!==null ? `<span class="clickable-sensor" data-entity="${cfg.house_temp_sensor}">${sHT}°C</span>` : '';
@@ -466,7 +469,6 @@ class AirconControlCard extends HTMLElement {
         el.style.cursor='pointer';
         el.addEventListener('click',()=>{ const ev=new Event('hass-more-info',{bubbles:true,composed:true}); ev.detail={entityId:el.dataset.entity}; el.dispatchEvent(ev); });
       });
-      this._lastStates.sensorKey = sk;
     }
 
     if(this._lastStates.currentMode !== curMode){
