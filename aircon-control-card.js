@@ -134,7 +134,6 @@ class AirconControlCard extends HTMLElement {
           z-index:1;
           cursor:pointer;
         }
-        /* Invisible thumb – allows full-track click & drag */
         .styled-room-slider::-webkit-slider-thumb{
           -webkit-appearance:none;width:0;height:0;cursor:pointer;
         }
@@ -295,7 +294,7 @@ class AirconControlCard extends HTMLElement {
               light=this.hexToRgba(this.shadeColor(col,50),0.1);
         rhtml+=`<div class="room-block" data-entity="${r.slider_entity}" data-temp-entity="${r.sensor_entity||''}">
                   <input type="range" class="styled-room-slider" min="0" max="100" step="5" value="0"
-                         data-entity="${r(lambda_entity}" data-temp-entity="${r.sensor_entity||''}"
+                         data-entity="${r.slider_entity}" data-temp-entity="${r.sensor_entity||''}"
                          style="--gradient-dark:${dark};--gradient-start:${prim};--light-gradient-end:${light};--percent:0%;">
                   <div class="slider-info">
                     <span class="slider-name">${r.name}</span>
@@ -310,7 +309,7 @@ class AirconControlCard extends HTMLElement {
   }
 
   /* -------------------------------------------------
-     LISTENERS – now with full-track click & drag
+     LISTENERS – full-track click & drag
   ------------------------------------------------- */
   _attachListeners(){
     const cfg=this.config;
@@ -453,7 +452,7 @@ class AirconControlCard extends HTMLElement {
                     dry:{icon:'mdi:water-percent',color:'#009688',name:'Dry'},
                     auto:{icon:'mdi:autorenew',color:'#FFC107',name:'Auto'}};
 
-    const glow glow=modeData[curMode]?.color??'#b37fed';
+    const glow=modeData[curMode]?.color??'#b37fed';
     if(this._lastStates.glowColor!==glow){
       this.shadowRoot.host.style.setProperty('--glow-color',glow);
       this._lastStates.glowColor=glow;
