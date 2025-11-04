@@ -154,21 +154,20 @@ class AirconControlCard extends HTMLElement {
           pointer-events:none;font-family:'Georgia','Playfair Display',serif;
           font-size:15px;color:var(--text-color,white);z-index:2;
         }
-        .slider-info *{pointer-events:auto;}
         .slider-name{flex:1;width:200px;}
         .slider-status{width:50px;text-align:right;}
         .slider-temp{
           width:50px;text-align:center;cursor:pointer;
-          text-decoration:none;
+          text-decoration:none;pointer-events:auto;
         }
 
         /* ---------- VIEW MODES ---------- */
-        :host([view-mode="aircon"]) .modes,
-        :host([view-mode="aircon"]) .fan-modes,
-        :host([view-mode="aircon"]) .temp-setpoint-wrapper,
-        :host([view-mode="aircon"]) .sensor-line { display:none; }
-
-        :host([view-mode="sliders"]) .room-section { display:none; }
+          :host([view-mode="sliders"]) .modes,
+          :host([view-mode="sliders"]) .fan-modes,
+          :host([view-mode="sliders"]) .temp-setpoint-wrapper,
+          :host([view-mode="sliders"]) .sensor-line { display:none; }
+          
+          :host([view-mode="aircon"]) .room-section { display:none; }
       </style>
 
       <div class="modes"></div>
