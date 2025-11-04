@@ -54,6 +54,7 @@ resources:
 |-----------------------|-----------|----------|----------------------------------------------------------------|
 | `type`                | string    | Yes      | The card type, always `"custom:aircon-control-card"`           |
 | `entity`              | string    | Yes      | The main climate entity ID (e.g., `climate.living_room_ac`)     |
+| `view_mode`           | string    | No       | View modde so you can select either `aircon` or `sliders`. Default: Full |
 | `show_mode_names`     | boolean   | No       | Whether to show HVAC mode names alongside icons   Default: true              |
 | `sphere_primary_color` | string/rgb| No       | The sphere primary color       Default purple                  |
 | `sphere_secondary_color` | string/rgb| No       | The sphere secondary color   Default: black                   |
