@@ -118,7 +118,6 @@ class AirconControlCard extends HTMLElement {
         .sensor-line ha-icon[icon="mdi:home-outline"]{color:#4fc3f7;}
         .sensor-line ha-icon[icon="mdi:weather-sunny"]{color:#ffca28;}
         .sensor-line ha-icon[icon="mdi:solar-power"]{color:#fbc02d;}
-        /* NO underline anywhere */
         .clickable-sensor{cursor:pointer;text-decoration:none;color:inherit;}
 
         .room-section{margin-top:12px;display:flex;flex-direction:column;gap:2px;}
@@ -133,13 +132,14 @@ class AirconControlCard extends HTMLElement {
             var(--light-gradient-end) var(--percent)
           );
           z-index:1;
+          cursor:pointer;
         }
-        /* Hide thumb completely */
+        /* Invisible thumb – allows full-track click & drag */
         .styled-room-slider::-webkit-slider-thumb{
-          -webkit-appearance:none;width:0;height:0;
+          -webkit-appearance:none;width:0;height:0;cursor:pointer;
         }
         .styled-room-slider::-moz-range-thumb{
-          width:0;height:0;border:none;
+          width:0;height:0;border:none;cursor:pointer;
         }
         .slider-info{
           position:absolute;top:6px;left:12px;right:12px;height:22px;
@@ -152,7 +152,7 @@ class AirconControlCard extends HTMLElement {
         .slider-status{width:50px;text-align:right;}
         .slider-temp{
           width:50px;text-align:center;cursor:pointer;
-          text-decoration:none; /* no underline */
+          text-decoration:none;
         }
 
         .view-aircon .modes,
@@ -295,7 +295,7 @@ class AirconControlCard extends HTMLElement {
               light=this.hexToRgba(this.shadeColor(col,50),0.1);
         rhtml+=`<div class="room-block" data-entity="${r.slider_entity}" data-temp-entity="${r.sensor_entity||''}">
                   <input type="range" class="styled-room-slider" min="0" max="100" step="5" value="0"
-                         data-entity="${r.slider_entity}" data-temp-entity="${r.sensor_entity||''}"
+                         data-entity="${r(lambda_entity}" data-temp-entity="${r.sensor_entity||''}"
                          style="--gradient-dark:${dark};--gradient-start:${prim};--light-gradient-end:${light};--percent:0%;">
                   <div class="slider-info">
                     <span class="slider-name">${r.name}</span>
@@ -310,11 +310,12 @@ class AirconControlCard extends HTMLElement {
   }
 
   /* -------------------------------------------------
-     LISTENERS
+     LISTENERS – now with full-track click & drag
   ------------------------------------------------- */
   _attachListeners(){
     const cfg=this.config;
 
+    // Mode & fan buttons
     this.shadowRoot.querySelectorAll('.mode-btn,.fan-btn').forEach(b=>{
       const nb=b.cloneNode(true);b.parentNode.replaceChild(nb,b);
       nb.addEventListener('click',()=>{
@@ -327,6 +328,7 @@ class AirconControlCard extends HTMLElement {
       });
     });
 
+    // Room sliders – full track interaction
     this.shadowRoot.querySelectorAll('.room-block').forEach(block=>{
       const slider=block.querySelector('.styled-room-slider');
       const tempEl=block.querySelector('.slider-temp');
@@ -336,25 +338,62 @@ class AirconControlCard extends HTMLElement {
       this._sliderDragging[eid]=false;
       const ns=slider.cloneNode(true);slider.parentNode.replaceChild(ns,slider);
 
-      ns.addEventListener('pointerdown',()=>{this._sliderDragging[eid]=true;});
-      ns.addEventListener('pointerup',()=>{this._sliderDragging[eid]=false;});
-      ns.addEventListener('pointercancel',()=>{this._sliderDragging[eid]=false;});
-
-      ns.addEventListener('input',e=>{
-        const v=+e.target.value;
-        this._localSliderValues[eid]=v;
-        e.target.style.setProperty('--percent',v+'%');
-        block.querySelector('.slider-status').textContent=v+'%';
-      });
-      ns.addEventListener('change',e=>{
-        const v=+e.target.value;
-        this._localSliderValues[eid]=undefined;
-        if(this._hass)this._hass.callService('cover','set_cover_position',{entity_id:eid,position:v});
+      // Click anywhere on track
+      ns.addEventListener('click', e => {
+        const rect = ns.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const percent = x / rect.width;
+        const value = Math.round(percent * 100 / 5) * 5;
+        ns.value = value;
+        ns.dispatchEvent(new Event('input', { bubbles: true }));
+        ns.dispatchEvent(new Event('change', { bubbles: true }));
       });
 
-      if(tempEl&&tempEid){
+      // Drag support
+      ns.addEventListener('pointerdown', e => {
+        this._sliderDragging[eid] = true;
+        ns.setPointerCapture(e.pointerId);
+        const moveHandler = ev => {
+          if (!this._sliderDragging[eid]) return;
+          const rect = ns.getBoundingClientRect();
+          const x = ev.clientX - rect.left;
+          const percent = Math.max(0, Math.min(1, x / rect.width));
+          const value = Math.round(percent * 100 / 5) * 5;
+          ns.value = value;
+          ns.dispatchEvent(new Event('input', { bubbles: true }));
+        };
+        const upHandler = () => {
+          this._sliderDragging[eid] = false;
+          ns.releasePointerCapture(e.pointerId);
+          ns.removeEventListener('pointermove', moveHandler);
+          ns.removeEventListener('pointerup', upHandler);
+          ns.removeEventListener('pointercancel', upHandler);
+          ns.dispatchEvent(new Event('change', { bubbles: true }));
+        };
+        ns.addEventListener('pointermove', moveHandler);
+        ns.addEventListener('pointerup', upHandler);
+        ns.addEventListener('pointercancel', upHandler);
+      });
+
+      // Input updates local value & UI
+      ns.addEventListener('input', e => {
+        const v = +e.target.value;
+        this._localSliderValues[eid] = v;
+        e.target.style.setProperty('--percent', v + '%');
+        block.querySelector('.slider-status').textContent = v + '%';
+      });
+
+      // Change sends to HA
+      ns.addEventListener('change', e => {
+        const v = +e.target.value;
+        this._localSliderValues[eid] = undefined;
+        if(this._hass) this._hass.callService('cover','set_cover_position',{entity_id:eid,position:v});
+      });
+
+      // Room temp click → more-info
+      if(tempEl && tempEid){
         tempEl.style.cursor='pointer';
-        tempEl.addEventListener('click',ev=>{
+        tempEl.addEventListener('click', ev=>{
           ev.stopPropagation();
           const mi=new Event('hass-more-info',{bubbles:true,composed:true});
           mi.detail={entityId:tempEid};
@@ -363,6 +402,7 @@ class AirconControlCard extends HTMLElement {
       }
     });
 
+    // Setpoint buttons
     if(!this._setpointListenersAdded){
       this.shadowRoot.getElementById('dec-setpoint')?.addEventListener('click',()=>this._adjustTemp(-1));
       this.shadowRoot.getElementById('inc-setpoint')?.addEventListener('click',()=>this._adjustTemp(1));
@@ -413,7 +453,7 @@ class AirconControlCard extends HTMLElement {
                     dry:{icon:'mdi:water-percent',color:'#009688',name:'Dry'},
                     auto:{icon:'mdi:autorenew',color:'#FFC107',name:'Auto'}};
 
-    const glow=modeData[curMode]?.color??'#b37fed';
+    const glow glow=modeData[curMode]?.color??'#b37fed';
     if(this._lastStates.glowColor!==glow){
       this.shadowRoot.host.style.setProperty('--glow-color',glow);
       this._lastStates.glowColor=glow;
